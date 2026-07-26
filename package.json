@@ -13,11 +13,13 @@
   "dependencies": {
     "gsap": "^3.15.0",
     "lil-gui": "^0.21.0",
+    "stats.js": "^0.17.0",
     "three": "^0.185.1",
     "vue": "^3.5.39"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",
+    "@types/stats.js": "^0.17.4",
     "@types/three": "^0.185.1",
     "@vitejs/plugin-vue": "^6.0.7",
     "@vue/tsconfig": "^0.9.1",
