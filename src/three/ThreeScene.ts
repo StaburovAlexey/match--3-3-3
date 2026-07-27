@@ -5,6 +5,13 @@ import { gsap } from 'gsap'
 import GUI from 'lil-gui'
 import { textureLoader } from './TextureLoader'
 import Stats from 'stats.js'
+import { applyProceduralCracks, type CrackUniforms } from './ProceduralCracks'
+import {
+  crackPalettes,
+  elementTypes,
+  settingCrack,
+  type ElementType,
+} from './ElementMaterialConfig'
 
 export default class ThreeScene {
   private readonly container: HTMLElement
@@ -14,6 +21,8 @@ export default class ThreeScene {
   private readonly controls: OrbitControls
   private readonly resizeObserver: ResizeObserver
   private readonly stats: Stats
+  private readonly timer = new THREE.Timer()
+  private readonly crackUniforms = new Map<ElementType, CrackUniforms>()
   private gui: GUI | null = null
   private triangle: number
 
@@ -42,6 +51,7 @@ export default class ThreeScene {
     this.stats.dom.style.left = '0'
     this.stats.dom.style.zIndex = '10'
     this.container.appendChild(this.stats.dom)
+    this.timer.connect(document)
 
     /*        this.scene.add(new THREE.GridHelper(10, 10, 0x64748b, 0x334155))*/
     this.scene.add(new THREE.AxesHelper(3))
@@ -55,10 +65,6 @@ export default class ThreeScene {
   }
 
   private async createCubes(): Promise<void> {
-    await textureLoader.loadAll({
-      matcap: '/texture/304FB1_69A1EF_5081DF_5C8CE6-256px.png',
-    })
-
     const timeline = gsap.timeline()
     const cubeGeometry: Record<string, number> = { axis: 0.2, s: 1, r: 0.02 }
     const gap: number = 0.05
@@ -71,37 +77,41 @@ export default class ThreeScene {
       cubeGeometry.s,
       cubeGeometry.r,
     )
-    const torusGeometry = new THREE.TorusGeometry(0.055, 0.014, 8, 16)
-    const torusMaterial = new THREE.MeshMatcapMaterial({
-      matcap: textureLoader.get('matcap'),
-      color: 0x8feaff,
+    const materials = new Map<ElementType, THREE.MeshMatcapMaterial>()
+    elementTypes.forEach((type) => {
+      const palette = crackPalettes[type]
+      const material = new THREE.MeshMatcapMaterial({
+        matcap: textureLoader.get(type),
+        color: palette.materialColor,
+        depthTest: true,
+        depthWrite: true,
+        side: THREE.FrontSide,
+      })
+
+      const uniforms = applyProceduralCracks(material, {
+        ...settingCrack[type],
+        color: new THREE.Color(palette.crackColor),
+        fillColor: new THREE.Color(palette.fillColor),
+        highlightColor: new THREE.Color(palette.highlightColor),
+      })
+      materials.set(type, material)
+      this.crackUniforms.set(type, uniforms)
     })
-    const material = new THREE.MeshMatcapMaterial({
-      matcap: textureLoader.get('matcap'),
-      color: 0xbdeeff,
-      opacity: 0.35,
-      transparent: false,
-      depthTest: true,
-      depthWrite: true,
-      side: THREE.FrontSide,
-    })
-    const crackUniforms = this.setupProceduralCracks(material)
-    this.setupMatcapMaterialGui(material, crackUniforms)
+
+    this.setupMatcapMaterialGui(materials, this.crackUniforms)
 
     const group = new THREE.Group()
     const r = 4
     for (let y = 0; y < r; y++) {
       for (let x = 0; x < r; x++) {
         for (let z = 0; z < r; z++) {
+          const type = elementTypes[Math.floor(Math.random() * elementTypes.length)]
+          const material = materials.get(type)
+          if (!material) return
+
           const cube = new THREE.Mesh(geometry, material)
           cube.position.set((x - 1) * step, y * step, (z - 1) * step)
           cube.scale.setScalar(0)
-
-          const torus = new THREE.Mesh(torusGeometry, torusMaterial)
-          torus.rotation.x = Math.PI / 2
-          torus.renderOrder = 1
-          cube.renderOrder = 2
-          cube.add(torus)
 
           group.add(cube)
         }
@@ -160,158 +170,86 @@ export default class ThreeScene {
     }
   }
 
-  private setupProceduralCracks(material: THREE.Material) {
-    const uniforms = {
-      uCrackScale: { value: 7 },
-      uCrackWidth: { value: 0.055 },
-      uCrackStrength: { value: 0.9 },
-      uCrackFillStrength: { value: 0.18 },
-      uCrackHighlightStrength: { value: 0.22 },
-      uCrackColor: { value: new THREE.Color(0x23647c) },
-      uCrackFillColor: { value: new THREE.Color(0x6fc7df) },
-      uCrackHighlightColor: { value: new THREE.Color(0xffffff) },
-    }
-
-    material.onBeforeCompile = (shader) => {
-      Object.assign(shader.uniforms, uniforms)
-
-      const crackFunctions = /* glsl */ `
-        uniform float uCrackScale;
-        uniform float uCrackWidth;
-        uniform float uCrackStrength;
-        uniform float uCrackFillStrength;
-        uniform float uCrackHighlightStrength;
-        uniform vec3 uCrackColor;
-        uniform vec3 uCrackFillColor;
-        uniform vec3 uCrackHighlightColor;
-
-        varying vec3 vCrackWorldPosition;
-        varying vec3 vCrackWorldNormal;
-
-        vec2 crackHash(vec2 p) {
-          p = vec2(
-            dot(p, vec2(127.1, 311.7)),
-            dot(p, vec2(269.5, 183.3))
-          );
-          return fract(sin(p) * 43758.5453);
-        }
-
-        float crackVoronoi(vec2 uv, float width) {
-          vec2 cell = floor(uv);
-          vec2 local = fract(uv);
-          float nearest = 10.0;
-          float secondNearest = 10.0;
-
-          for (int y = -1; y <= 1; y++) {
-            for (int x = -1; x <= 1; x++) {
-              vec2 offset = vec2(float(x), float(y));
-              vec2 point = crackHash(cell + offset);
-              float distanceToPoint = length(offset + point - local);
-
-              if (distanceToPoint < nearest) {
-                secondNearest = nearest;
-                nearest = distanceToPoint;
-              } else if (distanceToPoint < secondNearest) {
-                secondNearest = distanceToPoint;
-              }
-            }
-          }
-
-          float edgeDistance = secondNearest - nearest;
-          return 1.0 - smoothstep(0.0, width, edgeDistance);
-        }
-
-        float proceduralCracks(float width) {
-          vec3 position = vCrackWorldPosition * uCrackScale;
-          vec3 normal = abs(normalize(vCrackWorldNormal));
-          normal = pow(normal, vec3(4.0));
-          normal /= max(normal.x + normal.y + normal.z, 0.0001);
-
-          float crackXY = crackVoronoi(position.xy, width);
-          float crackXZ = crackVoronoi(position.xz, width);
-          float crackYZ = crackVoronoi(position.yz, width);
-
-          return (
-            crackXY * normal.z +
-            crackXZ * normal.y +
-            crackYZ * normal.x
-          );
-        }
-      `
-
-      shader.vertexShader = `
-        varying vec3 vCrackWorldPosition;
-        varying vec3 vCrackWorldNormal;
-      `
-        .concat(shader.vertexShader)
-        .replace(
-          '#include <begin_vertex>',
-          `#include <begin_vertex>
-            vCrackWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;
-            vCrackWorldNormal = normalize(mat3(modelMatrix) * normal);`,
-        )
-
-      shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', `${crackFunctions}\n#include <common>`)
-        .replace(
-          '#include <map_fragment>',
-          `#include <map_fragment>
-            float crack = proceduralCracks(uCrackWidth);
-            float crackFill = proceduralCracks(uCrackWidth * 4.0);
-            float crackHighlight = proceduralCracks(uCrackWidth * 0.3);
-            diffuseColor.rgb = mix(
-              diffuseColor.rgb,
-              uCrackFillColor,
-              crackFill * uCrackFillStrength
-            );
-            diffuseColor.rgb = mix(diffuseColor.rgb, uCrackColor, crack * uCrackStrength);
-            diffuseColor.rgb = mix(
-              diffuseColor.rgb,
-              uCrackHighlightColor,
-              crackHighlight * uCrackHighlightStrength
-            );`,
-        )
-    }
-
-    material.customProgramCacheKey = () => 'procedural-ice-cracks-v1'
-
-    return uniforms
-  }
-
-  setupMatcapMaterialGui(
-    material: THREE.MeshMatcapMaterial,
-    crackUniforms: ReturnType<ThreeScene['setupProceduralCracks']>,
+  private setupMatcapMaterialGui(
+    materials: Map<ElementType, THREE.MeshMatcapMaterial>,
+    crackUniforms: Map<ElementType, CrackUniforms>,
   ): void {
     this.gui?.destroy()
 
-    const gui = new GUI({ title: 'Matcap ice' })
-    const materialFolder = gui.addFolder('Material')
+    const gui = new GUI({ title: 'Element materials' })
 
-    materialFolder.addColor(material, 'color').name('color')
-    materialFolder.add(material, 'opacity', 0, 1, 0.01)
-    materialFolder.add(material, 'transparent').onChange(() => {
-      material.needsUpdate = true
-    })
-    materialFolder.add(material, 'wireframe').onChange(() => {
-      material.needsUpdate = true
-    })
-    materialFolder.add(material, 'flatShading').onChange(() => {
-      material.needsUpdate = true
-    })
-    materialFolder.add(material, 'depthTest')
-    materialFolder.add(material, 'depthWrite')
+    materials.forEach((material, type) => {
+      const materialFolder = gui.addFolder(type)
 
-    const crackFolder = gui.addFolder('Procedural cracks')
-    crackFolder.add(crackUniforms.uCrackScale, 'value', 1, 20, 0.1).name('scale')
-    crackFolder.add(crackUniforms.uCrackWidth, 'value', 0.005, 0.2, 0.005).name('width')
-    crackFolder.add(crackUniforms.uCrackStrength, 'value', 0, 1, 0.01).name('strength')
-    crackFolder.add(crackUniforms.uCrackFillStrength, 'value', 0, 1, 0.01).name('fill strength')
-    crackFolder
-      .add(crackUniforms.uCrackHighlightStrength, 'value', 0, 1, 0.01)
-      .name('white highlight')
-    crackFolder.addColor(crackUniforms.uCrackColor, 'value').name('color')
-    crackFolder.addColor(crackUniforms.uCrackFillColor, 'value').name('fill color')
-    crackFolder.addColor(crackUniforms.uCrackHighlightColor, 'value').name('highlight color')
+      // Proxy through getHex()/set() so lil-gui reads/writes sRGB hex,
+      // not THREE.Color's internal linear r/g/b values.
+      const matColorProxy = {
+        get hex() {
+          return material.color.getHex()
+        },
+        set hex(v: number) {
+          material.color.set(v)
+        },
+      }
+      materialFolder.addColor(matColorProxy, 'hex').name('material color')
+      materialFolder.add(material, 'opacity', 0, 1, 0.01)
+      materialFolder.add(material, 'transparent').onChange(() => {
+        material.needsUpdate = true
+      })
+      materialFolder.add(material, 'wireframe').onChange(() => {
+        material.needsUpdate = true
+      })
+      materialFolder.add(material, 'flatShading').onChange(() => {
+        material.needsUpdate = true
+      })
+      materialFolder.add(material, 'depthTest')
+      materialFolder.add(material, 'depthWrite')
+
+      const uniforms = crackUniforms.get(type)
+      if (!uniforms) return
+
+      const crackFolder = materialFolder.addFolder('Cracks')
+      crackFolder.add(uniforms.uCrackScale, 'value', 1, 20, 0.1).name('scale')
+      crackFolder.add(uniforms.uCrackWidth, 'value', 0.005, 0.2, 0.005).name('width')
+      crackFolder.add(uniforms.uCrackStrength, 'value', 0, 1, 0.01).name('strength')
+      crackFolder.add(uniforms.uCrackFillStrength, 'value', 0, 1, 0.01).name('fill strength')
+      crackFolder
+        .add(uniforms.uCrackHighlightStrength, 'value', 0, 1, 0.01)
+        .name('highlight strength')
+      crackFolder
+        .add(uniforms.uCrackHighlightSpeed, 'value', 0, 12, 0.1)
+        .name('highlight blink speed')
+      crackFolder.add(uniforms.uCrackHighlightGlow, 'value', 0, 3, 0.01).name('highlight glow')
+      crackFolder.add(uniforms.uCrackDeformStrength, 'value', 0, 0.25, 0.005).name('voronoi deform')
+      crackFolder.add(uniforms.uCrackDeformSpeed, 'value', 0, 5, 0.1).name('voronoi speed')
+      const crackColorProxy = {
+        get hex() {
+          return uniforms.uCrackColor.value.getHex()
+        },
+        set hex(v: number) {
+          uniforms.uCrackColor.value.set(v)
+        },
+      }
+      const fillColorProxy = {
+        get hex() {
+          return uniforms.uCrackFillColor.value.getHex()
+        },
+        set hex(v: number) {
+          uniforms.uCrackFillColor.value.set(v)
+        },
+      }
+      const highlightColorProxy = {
+        get hex() {
+          return uniforms.uCrackHighlightColor.value.getHex()
+        },
+        set hex(v: number) {
+          uniforms.uCrackHighlightColor.value.set(v)
+        },
+      }
+      crackFolder.addColor(crackColorProxy, 'hex').name('crack color')
+      crackFolder.addColor(fillColorProxy, 'hex').name('fill color')
+      crackFolder.addColor(highlightColorProxy, 'hex').name('highlight color')
+    })
 
     this.gui = gui
   }
@@ -327,6 +265,11 @@ export default class ThreeScene {
 
   private render(): void {
     this.stats.begin()
+    this.timer.update()
+    const time = this.timer.getElapsed()
+    this.crackUniforms.forEach((uniforms) => {
+      uniforms.uCrackTime.value = time
+    })
     this.controls.update()
     this.renderer.render(this.scene, this.camera)
     const locTriangle = this.renderer.info.render.triangles
@@ -341,6 +284,7 @@ export default class ThreeScene {
     this.resizeObserver.disconnect()
     this.renderer.setAnimationLoop(null)
     this.controls.dispose()
+    this.timer.dispose()
     this.stats.dom.remove()
     this.gui?.destroy()
     this.gui = null
