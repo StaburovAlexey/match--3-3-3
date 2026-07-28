@@ -2,7 +2,7 @@ import { createApp } from 'vue'
 import './style.css'
 import App from './App.vue'
 
-import { textureLoader } from './three/TextureLoader.ts'
+import { textureLoader } from './game/three/loaders/TextureLoader.ts'
 await textureLoader.loadAll({
   ice: '/texture/ice128px.png',
   fire: '/texture/fire128px.png',

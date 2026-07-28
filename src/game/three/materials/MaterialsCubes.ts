@@ -7,7 +7,7 @@ import {
 } from './ElementMaterialConfig.ts'
 export type Cracks = Map<ElementType, CrackUniforms>
 export type MaterialsCubesTypes = Map<ElementType, THREE.MeshMatcapMaterial>
-import { textureLoader } from './TextureLoader.ts'
+import { textureLoader } from '../loaders/TextureLoader.ts'
 import { applyProceduralCracks, type CrackUniforms } from './ProceduralCracks.ts'
 export class MaterialsCubes {
   private readonly materials: MaterialsCubesTypes

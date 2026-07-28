@@ -5,5 +5,5 @@
 </template>
 
 <script setup lang="ts">
-import ThreeScene from './components/ThreeScene.vue'
+import ThreeScene from './game/gui/components/ThreeScene.vue'
 </script>

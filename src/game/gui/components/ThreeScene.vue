@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, useTemplateRef } from 'vue'
-import ThreeScene from '../three/ThreeScene'
+import ThreeScene from '../../three/scene/ThreeScene'
 
 const container = useTemplateRef<HTMLDivElement>('container')
 let scene: ThreeScene | null = null
