@@ -18,9 +18,11 @@ export type TransformCrack = {
   deformStrength: number
   deformSpeed: number
 }
+export type CrackPalettes = Record<ElementType, CrackPalette>
+export type SettingCrack = Record<ElementType, TransformCrack>
 export const elementTypes: ElementType[] = ['ice', 'fire', 'earth', 'dark', 'light']
 
-export const crackPalettes: Record<ElementType, CrackPalette> = {
+export const crackPalettes: CrackPalettes = {
   ice: {
     materialColor: 0x5c92ff,
     crackColor: 0x85deff,
@@ -53,7 +55,7 @@ export const crackPalettes: Record<ElementType, CrackPalette> = {
   },
 }
 
-export const settingCrack: Record<ElementType, TransformCrack> = {
+export const SettingCrack: SettingCrack = {
   ice: {
     scale: 9.4,
     width: 0.2,
@@ -85,7 +87,7 @@ export const settingCrack: Record<ElementType, TransformCrack> = {
     highlightSpeed: 2,
     highlightGlow: 5,
     deformStrength: 0.04,
-    deformSpeed: 0.5,
+    deformSpeed: 1.5,
   },
   light: {
     scale: 9.4,

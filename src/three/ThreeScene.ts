@@ -1,17 +1,19 @@
 import * as THREE from 'three'
-import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
+// import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { gsap } from 'gsap'
 import GUI from 'lil-gui'
-import { textureLoader } from './TextureLoader'
+// import { textureLoader } from './TextureLoader'
 import Stats from 'stats.js'
-import { applyProceduralCracks, type CrackUniforms } from './ProceduralCracks'
+import type { CrackUniforms } from './ProceduralCracks'
 import {
-  crackPalettes,
+  // crackPalettes,
   elementTypes,
-  settingCrack,
+  // settingCrack,
   type ElementType,
 } from './ElementMaterialConfig'
+import { Cube } from './Cube.ts'
+import { MaterialsCubes } from './MaterialsCubes.ts'
 
 export default class ThreeScene {
   private readonly container: HTMLElement
@@ -22,7 +24,7 @@ export default class ThreeScene {
   private readonly resizeObserver: ResizeObserver
   private readonly stats: Stats
   private readonly timer = new THREE.Timer()
-  private readonly crackUniforms = new Map<ElementType, CrackUniforms>()
+  private crackUniforms = new Map<ElementType, CrackUniforms>()
   private gui: GUI | null = null
   private triangle: number
 
@@ -70,53 +72,24 @@ export default class ThreeScene {
     const gap: number = 0.05
     const step: number = cubeGeometry.axis + gap
 
-    const geometry = new RoundedBoxGeometry(
-      cubeGeometry.axis,
-      cubeGeometry.axis,
-      cubeGeometry.axis,
-      cubeGeometry.s,
-      cubeGeometry.r,
-    )
-    const materials = new Map<ElementType, THREE.MeshMatcapMaterial>()
-    elementTypes.forEach((type) => {
-      const palette = crackPalettes[type]
-      const material = new THREE.MeshMatcapMaterial({
-        matcap: textureLoader.get(type),
-        color: palette.materialColor,
-        depthTest: true,
-        depthWrite: true,
-        side: THREE.FrontSide,
-      })
-
-      const uniforms = applyProceduralCracks(material, {
-        ...settingCrack[type],
-        color: new THREE.Color(palette.crackColor),
-        fillColor: new THREE.Color(palette.fillColor),
-        highlightColor: new THREE.Color(palette.highlightColor),
-      })
-      materials.set(type, material)
-      this.crackUniforms.set(type, uniforms)
-    })
-
-    this.setupMatcapMaterialGui(materials, this.crackUniforms)
-
+    const materials = new MaterialsCubes()
+    this.crackUniforms = materials.cracks
+    this.setupMatcapMaterialGui(materials.all, this.crackUniforms)
     const group = new THREE.Group()
     const r = 4
     for (let y = 0; y < r; y++) {
       for (let x = 0; x < r; x++) {
         for (let z = 0; z < r; z++) {
           const type = elementTypes[Math.floor(Math.random() * elementTypes.length)]
-          const material = materials.get(type)
-          if (!material) return
-
-          const cube = new THREE.Mesh(geometry, material)
+          const material = materials.getMaterialsCube(type)
+          const cube = new Cube(type, material)
           cube.position.set((x - 1) * step, y * step, (z - 1) * step)
           cube.scale.setScalar(0)
-
           group.add(cube)
         }
       }
     }
+    console.log('crackUniforms', this.crackUniforms)
     const box = new THREE.Box3().setFromObject(group)
     const centerGroup = box.getCenter(new THREE.Vector3())
     group.position.sub(centerGroup)
