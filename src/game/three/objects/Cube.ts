@@ -11,7 +11,6 @@ export interface CubeGeometryConfig {
 export class Cube extends THREE.Mesh<THREE.BufferGeometry, THREE.MeshMatcapMaterial> {
   readonly elementType: ElementType
   readonly cubeGeometry: CubeGeometryConfig
-
   constructor(
     type: ElementType,
     material: THREE.MeshMatcapMaterial,
@@ -31,5 +30,6 @@ export class Cube extends THREE.Mesh<THREE.BufferGeometry, THREE.MeshMatcapMater
     super(geometry, material)
     this.cubeGeometry = cubeGeometry
     this.elementType = type
+
   }
 }

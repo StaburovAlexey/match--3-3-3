@@ -19,6 +19,7 @@ export default class GroupCubes {
   private readonly group: THREE.Group
   private readonly firstDuration = 0.08
   private readonly secondDuration = 0.1
+  private cubes: Cube[] = []
 
   constructor() {
     this.timeline = gsap.timeline()
@@ -32,13 +33,23 @@ export default class GroupCubes {
     for (let y = 0; y < this.size; y++) {
       for (let x = 0; x < this.size; x++) {
         for (let z = 0; z < this.size; z++) {
-          const type = elementTypes[Math.floor(Math.random() * elementTypes.length)]
-          const material = this.materials.getMaterialsCube(type)
-          const cube = new Cube(type, material, this.cubeGeometry)
+          const isOuter =
+            x === 0 ||
+            x === this.size - 1 ||
+            y === 0 ||
+            y === this.size - 1 ||
+            z === 0 ||
+            z === this.size - 1
 
-          cube.position.set((x - 1) * this.step, y * this.step, (z - 1) * this.step)
-          cube.scale.setScalar(0)
-          this.group.add(cube)
+          if (isOuter) {
+            const type = elementTypes[Math.floor(Math.random() * elementTypes.length)]
+            const material = this.materials.getMaterialsCube(type)
+            const cube = new Cube(type, material, this.cubeGeometry)
+            cube.position.set((x - 1) * this.step, y * this.step, (z - 1) * this.step)
+            cube.scale.setScalar(0)
+            this.cubes.push(cube)
+            this.group.add(cube)
+          }
         }
       }
     }
@@ -102,5 +113,9 @@ export default class GroupCubes {
 
   get cracks(): Cracks {
     return this.crackUniforms
+  }
+
+  get getCubes(): Cube[] {
+    return this.cubes
   }
 }

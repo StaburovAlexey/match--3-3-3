@@ -3,6 +3,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import Stats from 'stats.js'
 import type { Cracks } from '../materials/MaterialsCubes.ts'
 import GroupCubes from '../objects/groupCubes.ts'
+import CubesGrid from '../../logic/core/cubesGrid.ts'
+import type { Cube } from '../objects/Cube.ts'
+import { CubeRaycaster } from '../input/CubeRaycaster.ts'
 
 export default class ThreeScene {
   private readonly container: HTMLElement
@@ -15,7 +18,8 @@ export default class ThreeScene {
   private readonly timer = new THREE.Timer()
   private crackUniforms: Cracks = new Map()
   private triangle: number
-
+  private grid: CubesGrid
+  private readonly raycaster: CubeRaycaster
   constructor(container: HTMLElement) {
     this.container = container
     this.scene = new THREE.Scene()
@@ -47,17 +51,21 @@ export default class ThreeScene {
     this.scene.add(new THREE.AxesHelper(3))
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x475569, 2))
 
-    this.createCubes()
+    this.grid = new CubesGrid()
+    const cubes = this.createCubes()
+    this.raycaster = new CubeRaycaster(this.renderer, this.camera, cubes)
     this.resizeObserver = new ResizeObserver(() => this.resize())
     this.resizeObserver.observe(this.container)
     this.resize()
     this.renderer.setAnimationLoop(() => this.render())
   }
 
-  private createCubes(): void {
+  private createCubes(): Cube[] {
     const cubes = new GroupCubes()
+    this.grid.createGrid(cubes.getCubes)
     this.crackUniforms = cubes.cracks
     this.scene.add(cubes.object)
+    return cubes.getCubes
   }
 
   private resize(): void {
@@ -87,6 +95,7 @@ export default class ThreeScene {
   }
 
   dispose(): void {
+    this.raycaster.dispose()
     this.resizeObserver.disconnect()
     this.renderer.setAnimationLoop(null)
     this.controls.dispose()
