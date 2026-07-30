@@ -8,9 +8,16 @@ export interface CubeGeometryConfig {
   radius: number
 }
 
+export interface GridPosition {
+  x: number
+  y: number
+  z: number
+}
+
 export class Cube extends THREE.Mesh<THREE.BufferGeometry, THREE.MeshMatcapMaterial> {
   public elementType: ElementType
   readonly cubeGeometry: CubeGeometryConfig
+  private gridPosition!: GridPosition
   private uuidGrid: string = ''
   constructor(
     type: ElementType,
@@ -35,6 +42,15 @@ export class Cube extends THREE.Mesh<THREE.BufferGeometry, THREE.MeshMatcapMater
   setUuid(uuid: string) {
     this.uuidGrid = uuid
   }
+
+  setGridPosition(position: GridPosition): void {
+    this.gridPosition = position
+  }
+
+  get positionOnGrid(): GridPosition {
+    return this.gridPosition
+  }
+
   get getUuidGrid(): string {
     return this.uuidGrid
   }

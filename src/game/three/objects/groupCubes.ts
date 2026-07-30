@@ -39,6 +39,7 @@ export default class GroupCubes {
             const type = elementTypes[Math.floor(Math.random() * elementTypes.length)]
             const material = this.materials.getMaterialsCube(type)
             const cube = new Cube(type, material, this.cubeGeometry)
+            cube.setGridPosition({ x, y, z })
             cube.position.set((x - 1) * this.step, y * this.step, (z - 1) * this.step)
             cube.scale.setScalar(0)
             this.cubes.push(cube)
