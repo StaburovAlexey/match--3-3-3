@@ -10,6 +10,8 @@ import { SelectionController } from '../../logic/core/SelectionController.ts'
 import { CubeSelectionAnimator } from '../animations/CubeSelectionAnimator.ts'
 import { CubeSpawnAnimator } from '../animations/CubeSpawnAnimator.ts'
 import { CubeSwapAnimator } from '../animations/CubeSwapAnimator.ts'
+import { CubeStarEmitter } from '../animations/CubeStarEmitter.ts'
+import { CubeShakeAnimator } from '../animations/CubeShakeAnimator.ts'
 
 export default class ThreeScene {
   private readonly container: HTMLElement
@@ -28,6 +30,8 @@ export default class ThreeScene {
   private readonly selectionAnimator: CubeSelectionAnimator
   private readonly spawnAnimator: CubeSpawnAnimator
   private readonly swapAnimator: CubeSwapAnimator
+  private readonly starEmitter: CubeStarEmitter
+  private readonly shakeAnimator: CubeShakeAnimator
   constructor(container: HTMLElement) {
     this.container = container
     this.scene = new THREE.Scene()
@@ -61,9 +65,11 @@ export default class ThreeScene {
 
     this.grid = new CubesGrid()
     this.selectionController = new SelectionController(this.grid)
-    this.selectionAnimator = new CubeSelectionAnimator()
+    this.shakeAnimator = new CubeShakeAnimator()
+    this.selectionAnimator = new CubeSelectionAnimator(this.shakeAnimator)
     this.spawnAnimator = new CubeSpawnAnimator()
-    this.swapAnimator = new CubeSwapAnimator(this.grid)
+    this.swapAnimator = new CubeSwapAnimator(this.grid, this.shakeAnimator)
+    this.starEmitter = new CubeStarEmitter(this.scene)
     const cubes = this.createCubes()
     this.spawnAnimator.play(cubes)
     this.raycaster = new CubeRaycaster(this.renderer, this.camera, cubes)
@@ -115,6 +121,8 @@ export default class ThreeScene {
     this.selectionAnimator.destroy()
     this.spawnAnimator.destroy()
     this.swapAnimator.destroy()
+    this.shakeAnimator.destroy()
+    this.starEmitter.destroy()
     this.grid.destroy()
     this.controls.dispose()
     this.timer.dispose()

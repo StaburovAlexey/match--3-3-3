@@ -61,8 +61,8 @@ export function applyProceduralCracks(
       uniform vec3 uCrackFillColor;
       uniform vec3 uCrackHighlightColor;
 
-      varying vec3 vCrackWorldPosition;
-      varying vec3 vCrackWorldNormal;
+      varying vec3 vCrackLocalPosition;
+      varying vec3 vCrackLocalNormal;
 
       vec2 crackHash(vec2 p) {
         p = vec2(
@@ -108,8 +108,8 @@ export function applyProceduralCracks(
       }
 
       float proceduralCracks(float width) {
-        vec3 position = vCrackWorldPosition * uCrackScale;
-        vec3 normal = abs(normalize(vCrackWorldNormal));
+        vec3 position = vCrackLocalPosition * uCrackScale;
+        vec3 normal = abs(normalize(vCrackLocalNormal));
         normal = pow(normal, vec3(4.0));
         normal /= max(normal.x + normal.y + normal.z, 0.0001);
 
@@ -126,15 +126,15 @@ export function applyProceduralCracks(
     `
 
     shader.vertexShader = `
-      varying vec3 vCrackWorldPosition;
-      varying vec3 vCrackWorldNormal;
+      varying vec3 vCrackLocalPosition;
+      varying vec3 vCrackLocalNormal;
     `
       .concat(shader.vertexShader)
       .replace(
         '#include <begin_vertex>',
         `#include <begin_vertex>
-          vCrackWorldPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;
-          vCrackWorldNormal = normalize(mat3(modelMatrix) * normal);`,
+          vCrackLocalPosition = transformed;
+          vCrackLocalNormal = normalize(objectNormal);`,
       )
 
     shader.fragmentShader = shader.fragmentShader

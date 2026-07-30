@@ -3,16 +3,19 @@ import * as THREE from 'three'
 import { gameEvents } from '../../logic/events/GameEvents.ts'
 import type { SwapEventPayload } from '../../logic/events/GameEvents.ts'
 import type CubesGrid from '../../logic/core/cubesGrid.ts'
+import { CubeShakeAnimator } from './CubeShakeAnimator.ts'
 
 export class CubeSwapAnimator {
   private readonly unsubscribe: () => void
   private readonly unsubscribeRejected: () => void
   private readonly grid: CubesGrid
-  private readonly swapDelay = 1
+  private readonly shakeAnimator: CubeShakeAnimator
+  private readonly swapDelay = 0.35
   private timeline: gsap.core.Timeline | null = null
 
-  constructor(grid: CubesGrid) {
+  constructor(grid: CubesGrid, shakeAnimator: CubeShakeAnimator) {
     this.grid = grid
+    this.shakeAnimator = shakeAnimator
     this.unsubscribe = gameEvents.on('swap-requested', this.handleSwapRequested)
     this.unsubscribeRejected = gameEvents.on('swap-rejected', this.handleSwapRejected)
   }
@@ -34,8 +37,8 @@ export class CubeSwapAnimator {
 
     gameEvents.emit('field-ready-changed', false)
 
-    gsap.killTweensOf([first.position, first.rotation])
-    first.rotation.set(0, 0, 0)
+    gsap.killTweensOf(first.position)
+    this.shakeAnimator.startOnce(first, 0.07)
 
     this.timeline = gsap
       .timeline({
@@ -49,19 +52,6 @@ export class CubeSwapAnimator {
           gameEvents.emit('field-ready-changed', true)
         },
       })
-      .to(
-        first.rotation,
-        {
-          x: () => gsap.utils.random(-0.06, 0.06),
-          z: () => gsap.utils.random(-0.06, 0.06),
-          duration: 0.07,
-          repeat: 3,
-          repeatRefresh: true,
-          yoyo: true,
-          ease: 'sine.inOut',
-        },
-        0,
-      )
       .to(
         first.position,
         {
@@ -79,7 +69,7 @@ export class CubeSwapAnimator {
           x: firstStart.x,
           y: firstStart.y,
           z: firstStart.z,
-          duration: 0.3,
+          duration: 0.1,
           ease: 'power2.out',
         },
         0.36,
@@ -107,9 +97,8 @@ export class CubeSwapAnimator {
 
     gameEvents.emit('field-ready-changed', false)
 
-    gsap.killTweensOf([first.position, second.position, second.rotation])
-
-    second.rotation.set(0, 0, 0)
+    gsap.killTweensOf([first.position, second.position])
+    this.shakeAnimator.startOnce(second, 0.07)
 
     this.timeline = gsap
       .timeline({
@@ -123,35 +112,13 @@ export class CubeSwapAnimator {
           gameEvents.emit('field-ready-changed', true)
         },
       })
-      .to(
-        second.rotation,
-        {
-          x: () => gsap.utils.random(-0.06, 0.06),
-          z: () => gsap.utils.random(-0.06, 0.06),
-          duration: 0.07,
-          yoyo: true,
-          repeat: 9,
-          repeatRefresh: true,
-          ease: 'sine.inOut',
-        },
-        0,
-      )
-      .to(
-        second.rotation,
-        {
-          x: 0,
-          y: 0,
-          z: 0,
-          duration: 0.12,
-          ease: 'power1.out',
-        },
-        0.82,
-      )
+      .add(() => {
+        this.shakeAnimator.stop(second)
+      }, 0.22)
       .add(() => {
         gameEvents.emit('cube-deselected', { cube: first })
-        gsap.killTweensOf([first.rotation, second.rotation])
-        first.rotation.set(0, 0, 0)
-        second.rotation.set(0, 0, 0)
+        this.shakeAnimator.stop(first, 0)
+        this.shakeAnimator.stop(second, 0)
       }, this.swapDelay)
       .to(
         first.position,

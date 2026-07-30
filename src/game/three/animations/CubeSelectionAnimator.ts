@@ -1,14 +1,16 @@
-import { gsap } from 'gsap'
 import { gameEvents } from '../../logic/events/GameEvents.ts'
 import type { CubeEventPayload } from '../../logic/events/GameEvents.ts'
 import type { Cube } from '../objects/Cube.ts'
+import { CubeShakeAnimator } from './CubeShakeAnimator.ts'
 
 export class CubeSelectionAnimator {
   private readonly unsubscribeSelected: () => void
   private readonly unsubscribeDeselected: () => void
+  private readonly shakeAnimator: CubeShakeAnimator
   private selectedCube: Cube | null = null
 
-  constructor() {
+  constructor(shakeAnimator: CubeShakeAnimator) {
+    this.shakeAnimator = shakeAnimator
     this.unsubscribeSelected = gameEvents.on('cube-selected', this.handleCubeSelected)
     this.unsubscribeDeselected = gameEvents.on('cube-deselected', this.handleCubeDeselected)
   }
@@ -32,39 +34,11 @@ export class CubeSelectionAnimator {
   }
 
   private select(cube: Cube): void {
-    gsap.killTweensOf(cube.rotation)
-
-    gsap
-      .timeline({
-        repeat: -1,
-        repeatRefresh: true,
-      })
-      .to(cube.rotation, {
-        x: () => gsap.utils.random(-0.05, 0.05),
-        y: () => gsap.utils.random(-0.025, 0.025),
-        z: () => gsap.utils.random(-0.05, 0.05),
-        duration: 0.08,
-        ease: 'sine.inOut',
-      })
-      .to(cube.rotation, {
-        x: 0,
-        y: 0,
-        z: 0,
-        duration: 0.06,
-        ease: 'power1.out',
-      })
+    this.shakeAnimator.startLoop(cube, 0.08)
   }
 
   private deselect(cube: Cube): void {
-    gsap.killTweensOf(cube.rotation)
-
-    gsap.to(cube.rotation, {
-      x: 0,
-      y: 0,
-      z: 0,
-      duration: 0.12,
-      ease: 'power2.out',
-    })
+    this.shakeAnimator.stop(cube)
   }
 
   destroy(): void {
