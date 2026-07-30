@@ -3,7 +3,7 @@ import { gsap } from 'gsap'
 import { elementTypes } from '../materials/ElementMaterialConfig.ts'
 import { Cube, type CubeGeometryConfig } from './Cube.ts'
 import { MaterialsCubes, type Cracks } from '../materials/MaterialsCubes.ts'
-
+import { gameEvents } from '../../logic/events/GameEvents.ts'
 export default class GroupCubes {
   private readonly timeline: gsap.core.Timeline
   private readonly cubeGeometry: CubeGeometryConfig = {
@@ -30,6 +30,7 @@ export default class GroupCubes {
   }
 
   private init(): void {
+    gameEvents.emit('field-ready-changed', false)
     for (let y = 0; y < this.size; y++) {
       for (let x = 0; x < this.size; x++) {
         for (let z = 0; z < this.size; z++) {
@@ -105,6 +106,10 @@ export default class GroupCubes {
         children.length * this.firstDuration,
       )
     }
+
+    this.timeline.eventCallback('onComplete', () => {
+      gameEvents.emit('field-ready-changed', true)
+    })
   }
 
   get object(): THREE.Group {

@@ -10,4 +10,7 @@ await textureLoader.loadAll({
   dark: '/texture/dark128px.png',
   light: '/texture/light128px.png',
 })
+
+
+
 createApp(App).mount('#app')

@@ -9,8 +9,9 @@ export interface CubeGeometryConfig {
 }
 
 export class Cube extends THREE.Mesh<THREE.BufferGeometry, THREE.MeshMatcapMaterial> {
-  readonly elementType: ElementType
+  public elementType: ElementType
   readonly cubeGeometry: CubeGeometryConfig
+  private uuidGrid: string = ''
   constructor(
     type: ElementType,
     material: THREE.MeshMatcapMaterial,
@@ -30,6 +31,11 @@ export class Cube extends THREE.Mesh<THREE.BufferGeometry, THREE.MeshMatcapMater
     super(geometry, material)
     this.cubeGeometry = cubeGeometry
     this.elementType = type
-
+  }
+  setUuid(uuid: string) {
+    this.uuidGrid = uuid
+  }
+  get getUuidGrid(): string {
+    return this.uuidGrid
   }
 }

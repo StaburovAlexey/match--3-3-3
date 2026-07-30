@@ -1,6 +1,6 @@
 import * as THREE from 'three'
-import type { Cube } from '../objects/Cube.ts'
-
+import { Cube } from '../objects/Cube.ts'
+import { gameEvents } from '../../logic/events/GameEvents.ts'
 export class CubeRaycaster {
   private readonly raycaster = new THREE.Raycaster()
   private readonly pointer = new THREE.Vector2()
@@ -60,9 +60,15 @@ export class CubeRaycaster {
     this.raycaster.setFromCamera(this.pointer, this.camera)
 
     const intersections = this.raycaster.intersectObjects(this.cubes, false)
-    const cube = intersections[0]?.object
-
+    const object = intersections[0]?.object
+    if (!(object instanceof Cube)) {
+      return
+    }
+    const cube = object
     if (cube) {
+      gameEvents.emit('cube-click', {
+        cube
+      })
       console.log('Нажат куб:', cube)
     }
   }

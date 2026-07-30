@@ -6,6 +6,7 @@ import GroupCubes from '../objects/groupCubes.ts'
 import CubesGrid from '../../logic/core/cubesGrid.ts'
 import type { Cube } from '../objects/Cube.ts'
 import { CubeRaycaster } from '../input/CubeRaycaster.ts'
+import { SelectionController } from '../../logic/core/SelectionController.ts'
 
 export default class ThreeScene {
   private readonly container: HTMLElement
@@ -20,6 +21,7 @@ export default class ThreeScene {
   private triangle: number
   private grid: CubesGrid
   private readonly raycaster: CubeRaycaster
+  private readonly selectionController: SelectionController
   constructor(container: HTMLElement) {
     this.container = container
     this.scene = new THREE.Scene()
@@ -52,6 +54,7 @@ export default class ThreeScene {
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x475569, 2))
 
     this.grid = new CubesGrid()
+    this.selectionController = new SelectionController()
     const cubes = this.createCubes()
     this.raycaster = new CubeRaycaster(this.renderer, this.camera, cubes)
     this.resizeObserver = new ResizeObserver(() => this.resize())
@@ -98,6 +101,8 @@ export default class ThreeScene {
     this.raycaster.dispose()
     this.resizeObserver.disconnect()
     this.renderer.setAnimationLoop(null)
+    this.selectionController.destroy()
+    this.grid.destroy()
     this.controls.dispose()
     this.timer.dispose()
     this.stats.dom.remove()
