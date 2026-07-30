@@ -2,11 +2,13 @@
 
 import { gameEvents } from '../events/GameEvents.ts'
 import type { CubeEventPayload, IsFieldReady } from '../events/GameEvents.ts'
+import type { Cube } from '../../three/objects/Cube.ts'
 
 export class SelectionController {
   private readonly unsubscribeCubeClick: () => void
   private readonly unsubscribeCreateField: () => void
   private isDoneField = false
+  private selectedCube: Cube | null = null
   constructor() {
     this.unsubscribeCubeClick = gameEvents.on('cube-click', this.handleCubeClick)
     this.unsubscribeCreateField = gameEvents.on('field-ready-changed', this.handlerFieldReady)
@@ -16,6 +18,14 @@ export class SelectionController {
     if (!this.isDoneField) {
       return
     }
+
+    if (this.selectedCube === cube.cube) {
+      gameEvents.emit('cube-deselected', cube)
+      this.selectedCube = null
+      return
+    }
+
+    this.selectedCube = cube.cube
     gameEvents.emit('cube-selected', cube)
   }
   private handlerFieldReady = (value: IsFieldReady): void => {

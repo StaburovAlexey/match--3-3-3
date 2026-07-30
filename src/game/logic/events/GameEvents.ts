@@ -9,6 +9,7 @@ export type IsFieldReady = boolean
 export interface GameEventMap {
   'cube-click': CubeEventPayload
   'cube-selected': CubeEventPayload
+  'cube-deselected': CubeEventPayload
   'field-ready-changed': IsFieldReady
 }
 

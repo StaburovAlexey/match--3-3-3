@@ -7,6 +7,8 @@ import CubesGrid from '../../logic/core/cubesGrid.ts'
 import type { Cube } from '../objects/Cube.ts'
 import { CubeRaycaster } from '../input/CubeRaycaster.ts'
 import { SelectionController } from '../../logic/core/SelectionController.ts'
+import { CubeSelectionAnimator } from '../animations/CubeSelectionAnimator.ts'
+import { CubeSpawnAnimator } from '../animations/CubeSpawnAnimator.ts'
 
 export default class ThreeScene {
   private readonly container: HTMLElement
@@ -22,6 +24,8 @@ export default class ThreeScene {
   private grid: CubesGrid
   private readonly raycaster: CubeRaycaster
   private readonly selectionController: SelectionController
+  private readonly selectionAnimator: CubeSelectionAnimator
+  private readonly spawnAnimator: CubeSpawnAnimator
   constructor(container: HTMLElement) {
     this.container = container
     this.scene = new THREE.Scene()
@@ -55,7 +59,10 @@ export default class ThreeScene {
 
     this.grid = new CubesGrid()
     this.selectionController = new SelectionController()
+    this.selectionAnimator = new CubeSelectionAnimator()
+    this.spawnAnimator = new CubeSpawnAnimator()
     const cubes = this.createCubes()
+    this.spawnAnimator.play(cubes)
     this.raycaster = new CubeRaycaster(this.renderer, this.camera, cubes)
     this.resizeObserver = new ResizeObserver(() => this.resize())
     this.resizeObserver.observe(this.container)
@@ -102,6 +109,8 @@ export default class ThreeScene {
     this.resizeObserver.disconnect()
     this.renderer.setAnimationLoop(null)
     this.selectionController.destroy()
+    this.selectionAnimator.destroy()
+    this.spawnAnimator.destroy()
     this.grid.destroy()
     this.controls.dispose()
     this.timer.dispose()

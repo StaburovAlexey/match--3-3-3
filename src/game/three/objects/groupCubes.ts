@@ -1,11 +1,8 @@
 import * as THREE from 'three'
-import { gsap } from 'gsap'
 import { elementTypes } from '../materials/ElementMaterialConfig.ts'
 import { Cube, type CubeGeometryConfig } from './Cube.ts'
 import { MaterialsCubes, type Cracks } from '../materials/MaterialsCubes.ts'
-import { gameEvents } from '../../logic/events/GameEvents.ts'
 export default class GroupCubes {
-  private readonly timeline: gsap.core.Timeline
   private readonly cubeGeometry: CubeGeometryConfig = {
     axis: 0.2,
     segments: 1,
@@ -17,12 +14,9 @@ export default class GroupCubes {
   private readonly materials: MaterialsCubes
   private readonly crackUniforms: Cracks
   private readonly group: THREE.Group
-  private readonly firstDuration = 0.08
-  private readonly secondDuration = 0.1
   private cubes: Cube[] = []
 
   constructor() {
-    this.timeline = gsap.timeline()
     this.materials = new MaterialsCubes()
     this.crackUniforms = this.materials.cracks
     this.group = new THREE.Group()
@@ -30,7 +24,6 @@ export default class GroupCubes {
   }
 
   private init(): void {
-    gameEvents.emit('field-ready-changed', false)
     for (let y = 0; y < this.size; y++) {
       for (let x = 0; x < this.size; x++) {
         for (let z = 0; z < this.size; z++) {
@@ -58,58 +51,6 @@ export default class GroupCubes {
     const box = new THREE.Box3().setFromObject(this.group)
     const centerGroup = box.getCenter(new THREE.Vector3())
     this.group.position.sub(centerGroup)
-
-    const children = this.group.children
-
-    children.forEach((child, index) => {
-      const startTime = index * this.firstDuration
-
-      this.timeline.to(
-        child.scale,
-        {
-          x: 1.2,
-          y: 1.2,
-          z: 1.2,
-          duration: this.firstDuration,
-          ease: 'power2.out',
-        },
-        startTime,
-      )
-
-      if (index > 0) {
-        this.timeline.to(
-          children[index - 1].scale,
-          {
-            x: 1,
-            y: 1,
-            z: 1,
-            duration: this.secondDuration,
-            ease: 'power2.out',
-          },
-          startTime,
-        )
-      }
-    })
-
-    const lastChild = children[children.length - 1]
-
-    if (lastChild) {
-      this.timeline.to(
-        lastChild.scale,
-        {
-          x: 1,
-          y: 1,
-          z: 1,
-          duration: this.secondDuration,
-          ease: 'power2.out',
-        },
-        children.length * this.firstDuration,
-      )
-    }
-
-    this.timeline.eventCallback('onComplete', () => {
-      gameEvents.emit('field-ready-changed', true)
-    })
   }
 
   get object(): THREE.Group {
