@@ -45,8 +45,8 @@ export class CubeStarEmitter {
     const firstMovement = second.position.clone().sub(first.position)
     const secondMovement = first.position.clone().sub(second.position)
 
-    this.scheduleTrail(first, 0.35, 0.28, firstMovement)
-    this.scheduleTrail(second, 0.35, 0.28, secondMovement)
+    this.scheduleTrail(first, 0.35, 0.28, firstMovement, undefined, false, true)
+    this.scheduleTrail(second, 0.35, 0.28, secondMovement, undefined, false, true)
   }
 
   private handleRejected = ({ first, second }: SwapEventPayload): void => {
@@ -75,6 +75,7 @@ export class CubeStarEmitter {
     movementDirection: THREE.Vector3,
     origin?: THREE.Vector3,
     spreadAroundAxis = false,
+    smoothTrail = false,
   ): void {
     const timeline = gsap.timeline({
       onComplete: () => {
@@ -84,7 +85,15 @@ export class CubeStarEmitter {
 
     for (let elapsed = delay; elapsed < delay + duration; elapsed += 0.045) {
       timeline.call(
-        () => this.burst(cube, 2, movementDirection, origin, spreadAroundAxis),
+        () =>
+          this.burst(
+            cube,
+            smoothTrail ? 3 : 2,
+            movementDirection,
+            origin,
+            spreadAroundAxis,
+            smoothTrail,
+          ),
         [],
         elapsed,
       )
@@ -99,17 +108,33 @@ export class CubeStarEmitter {
     movementDirection: THREE.Vector3,
     source?: THREE.Vector3,
     spreadAroundAxis = false,
+    smoothTrail = false,
   ): void {
-    const origin = (source ?? cube.getWorldPosition(new THREE.Vector3()))
-      .clone()
-      .add(
+    const oppositeDirection = movementDirection.clone().normalize().negate()
+    const cubeOrigin = (source ?? cube.getWorldPosition(new THREE.Vector3())).clone()
+    let origin = cubeOrigin
+
+    if (smoothTrail) {
+      const axis = movementDirection.clone().normalize()
+      const reference =
+        Math.abs(axis.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0)
+      const faceWidth = new THREE.Vector3().crossVectors(axis, reference).normalize()
+      const faceHeight = new THREE.Vector3().crossVectors(axis, faceWidth).normalize()
+
+      origin = cubeOrigin
+        .addScaledVector(oppositeDirection, cube.cubeGeometry.axis * 0.5)
+        .addScaledVector(faceWidth, THREE.MathUtils.randFloatSpread(cube.cubeGeometry.axis))
+        .addScaledVector(faceHeight, THREE.MathUtils.randFloatSpread(cube.cubeGeometry.axis))
+    } else {
+      const spreadRadius = cube.cubeGeometry.axis * 0.35
+      origin.add(
         new THREE.Vector3(
-          THREE.MathUtils.randFloatSpread(cube.cubeGeometry.axis * 0.35),
-          THREE.MathUtils.randFloatSpread(cube.cubeGeometry.axis * 0.35),
-          THREE.MathUtils.randFloatSpread(cube.cubeGeometry.axis * 0.35),
+          THREE.MathUtils.randFloatSpread(spreadRadius),
+          THREE.MathUtils.randFloatSpread(spreadRadius),
+          THREE.MathUtils.randFloatSpread(spreadRadius),
         ),
       )
-    const oppositeDirection = movementDirection.clone().normalize().negate()
+    }
 
     for (let index = 0; index < count; index += 1) {
       const particle = this.particles.find(({ sprite }) => !sprite.visible)
@@ -128,13 +153,19 @@ export class CubeStarEmitter {
         ? this.getCircumferenceDirection(movementDirection)
         : oppositeDirection
             .clone()
-            .multiplyScalar(0.8)
-            .add(randomSpread.multiplyScalar(0.75))
+            .multiplyScalar(smoothTrail ? 0.92 : 0.8)
+            .add(randomSpread.multiplyScalar(smoothTrail ? 0.16 : 0.75))
             .normalize()
-      const distance = THREE.MathUtils.randFloat(0.16, 0.4)
+      const distance = smoothTrail
+        ? THREE.MathUtils.randFloat(0.08, 0.2)
+        : THREE.MathUtils.randFloat(0.16, 0.4)
       const target = origin.clone().addScaledVector(direction, distance)
-      const size = THREE.MathUtils.randFloat(0.012, 0.025)
-      const duration = THREE.MathUtils.randFloat(0.22, 0.4)
+      const size = smoothTrail
+        ? THREE.MathUtils.randFloat(0.014, 0.028)
+        : THREE.MathUtils.randFloat(0.012, 0.025)
+      const duration = smoothTrail
+        ? THREE.MathUtils.randFloat(0.55, 0.8)
+        : THREE.MathUtils.randFloat(0.22, 0.4)
 
       gsap.killTweensOf([sprite.position, sprite.scale, material])
       sprite.visible = true
