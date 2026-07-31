@@ -105,8 +105,8 @@ export class CubeSwapAnimator {
       .timeline({
         onComplete: () => {
           this.grid.swap(first, second)
+          gameEvents.emit('swap-completed', { first, second })
           this.timeline = null
-          gameEvents.emit('field-ready-changed', true)
         },
         onInterrupt: () => {
           this.timeline = null

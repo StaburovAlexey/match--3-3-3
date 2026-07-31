@@ -12,6 +12,11 @@ import { CubeSpawnAnimator } from '../animations/CubeSpawnAnimator.ts'
 import { CubeSwapAnimator } from '../animations/CubeSwapAnimator.ts'
 import { CubeStarEmitter } from '../animations/CubeStarEmitter.ts'
 import { CubeShakeAnimator } from '../animations/CubeShakeAnimator.ts'
+import { CubeMatchAnimator } from '../animations/CubeMatchAnimator.ts'
+import { CubeRefillAnimator } from '../animations/CubeRefillAnimator.ts'
+import { CubeRebuildAnimator } from '../animations/CubeRebuildAnimator.ts'
+import MatchResolver from '../../logic/core/MatchResolver.ts'
+import MatchValidator from '../../logic/core/MatchValidator.ts'
 
 export default class ThreeScene {
   private readonly container: HTMLElement
@@ -32,6 +37,11 @@ export default class ThreeScene {
   private readonly swapAnimator: CubeSwapAnimator
   private readonly starEmitter: CubeStarEmitter
   private readonly shakeAnimator: CubeShakeAnimator
+  private readonly matchResolver: MatchResolver
+  private readonly matchAnimator: CubeMatchAnimator
+  private readonly refillAnimator: CubeRefillAnimator
+  private readonly rebuildAnimator: CubeRebuildAnimator
+  private readonly cubesGroup: GroupCubes
   constructor(container: HTMLElement) {
     this.container = container
     this.scene = new THREE.Scene()
@@ -64,8 +74,17 @@ export default class ThreeScene {
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x475569, 2))
 
     this.grid = new CubesGrid()
+    this.cubesGroup = new GroupCubes()
     this.selectionController = new SelectionController(this.grid)
     this.shakeAnimator = new CubeShakeAnimator()
+    this.matchResolver = new MatchResolver(this.grid)
+    this.matchAnimator = new CubeMatchAnimator()
+    this.refillAnimator = new CubeRefillAnimator(this.grid, this.cubesGroup)
+    this.rebuildAnimator = new CubeRebuildAnimator(
+      this.grid,
+      this.cubesGroup,
+      new MatchValidator(this.grid),
+    )
     this.selectionAnimator = new CubeSelectionAnimator(this.shakeAnimator)
     this.spawnAnimator = new CubeSpawnAnimator()
     this.swapAnimator = new CubeSwapAnimator(this.grid, this.shakeAnimator)
@@ -80,11 +99,10 @@ export default class ThreeScene {
   }
 
   private createCubes(): Cube[] {
-    const cubes = new GroupCubes()
-    this.grid.createGrid(cubes.getCubes)
-    this.crackUniforms = cubes.cracks
-    this.scene.add(cubes.object)
-    return cubes.getCubes
+    this.grid.createGrid(this.cubesGroup.getCubes)
+    this.crackUniforms = this.cubesGroup.cracks
+    this.scene.add(this.cubesGroup.object)
+    return this.cubesGroup.getCubes
   }
 
   private resize(): void {
@@ -122,6 +140,10 @@ export default class ThreeScene {
     this.spawnAnimator.destroy()
     this.swapAnimator.destroy()
     this.shakeAnimator.destroy()
+    this.matchAnimator.destroy()
+    this.refillAnimator.destroy()
+    this.rebuildAnimator.destroy()
+    this.matchResolver.destroy()
     this.starEmitter.destroy()
     this.grid.destroy()
     this.controls.dispose()

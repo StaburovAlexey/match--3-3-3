@@ -10,7 +10,7 @@ export default class GroupCubes {
   }
   private readonly gap = 0.05
   private readonly step = this.cubeGeometry.axis + this.gap
-  private readonly size = 4
+  private readonly size = 3
   private readonly materials: MaterialsCubes
   private readonly crackUniforms: Cracks
   private readonly group: THREE.Group
@@ -64,5 +64,21 @@ export default class GroupCubes {
 
   get getCubes(): Cube[] {
     return this.cubes
+  }
+
+  getMaterial(type: Cube['elementType']): THREE.MeshMatcapMaterial {
+    return this.materials.getMaterialsCube(type)
+  }
+
+  getLocalPosition(position: { x: number; y: number; z: number }): THREE.Vector3 {
+    return new THREE.Vector3(
+      (position.x - 1) * this.step,
+      position.y * this.step,
+      (position.z - 1) * this.step,
+    )
+  }
+
+  setLocalPosition(cube: Cube, position: { x: number; y: number; z: number }): void {
+    cube.position.copy(this.getLocalPosition(position))
   }
 }

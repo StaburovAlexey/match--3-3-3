@@ -2,7 +2,7 @@ import type { Cube, GridPosition } from '../../three/objects/Cube.ts'
 import { gameEvents } from '../events/GameEvents.ts'
 import type { CubeEventPayload } from '../events/GameEvents.ts'
 
-interface ItemGrid {
+export interface ItemGrid {
   cube: Cube
   position: GridPosition
 }
@@ -88,6 +88,26 @@ export default class CubesGrid {
   get cubes(): Map<string, ItemGrid> {
     return this.cubesGrid
   }
+
+  get items(): ItemGrid[] {
+    return Array.from(this.cubesGrid.values())
+  }
+
+  get allCubes(): Cube[] {
+    return Array.from(this.cubesGrid.values(), ({ cube }) => cube)
+  }
+
+  moveCube(cube: Cube, position: GridPosition): void {
+    const item = this.cubesGrid.get(cube.getUuidGrid)
+
+    if (!item) {
+      return
+    }
+
+    item.position = { ...position }
+    cube.setGridPosition(item.position)
+  }
+
   destroy(): void {
     this.unsubscribe()
   }

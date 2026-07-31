@@ -33,6 +33,36 @@ export default class MatchValidator {
     )
   }
 
+  hasAvailableSwap(): boolean {
+    const directions: GridPosition[] = [
+      { x: 1, y: 0, z: 0 },
+      { x: 0, y: 1, z: 0 },
+      { x: 0, y: 0, z: 1 },
+    ]
+
+    return this.grid.items.some(({ cube }) => {
+      if (!cube.visible) {
+        return false
+      }
+
+      const position = this.grid.getGridPosition(cube)
+
+      if (!position) {
+        return false
+      }
+
+      return directions.some((direction) => {
+        const neighbor = this.grid.getCubeAt({
+          x: position.x + direction.x,
+          y: position.y + direction.y,
+          z: position.z + direction.z,
+        })
+
+        return neighbor?.visible === true && this.canSwap(cube, neighbor)
+      })
+    })
+  }
+
   private hasMatchAfterSwap(
     origin: GridPosition,
     type: ElementType,

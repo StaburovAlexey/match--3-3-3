@@ -47,6 +47,11 @@ export class Cube extends THREE.Mesh<THREE.BufferGeometry, THREE.MeshMatcapMater
     this.gridPosition = position
   }
 
+  setElement(type: ElementType, material: THREE.MeshMatcapMaterial): void {
+    this.elementType = type
+    this.material = material
+  }
+
   get positionOnGrid(): GridPosition {
     return this.gridPosition
   }
