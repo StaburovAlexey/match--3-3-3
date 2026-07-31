@@ -10,7 +10,7 @@ export default class GroupCubes {
   }
   private readonly gap = 0.05
   private readonly step = this.cubeGeometry.axis + this.gap
-  private readonly size = 3
+  private readonly size = 4
   private readonly materials: MaterialsCubes
   private readonly crackUniforms: Cracks
   private readonly group: THREE.Group

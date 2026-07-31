@@ -50,8 +50,20 @@ export class CubeStarEmitter {
   }
 
   private handleRejected = ({ first, second }: SwapEventPayload): void => {
-    const movement = second.position.clone().sub(first.position)
-    this.scheduleTrail(first, 0.3, 0.36, movement)
+    const firstStart = first.position.clone()
+    const secondStart = second.position.clone()
+    const centerDistance = firstStart.distanceTo(secondStart)
+    const contactDistance = first.cubeGeometry.axis
+    const impactProgress =
+      centerDistance > 0
+        ? THREE.MathUtils.clamp((centerDistance - contactDistance) / centerDistance, 0, 1)
+        : 0
+    const firstImpact = firstStart.clone().lerp(secondStart, impactProgress)
+    const contactPoint = firstImpact.clone().lerp(secondStart, 0.5)
+    const worldContactPoint = first.parent ? first.parent.localToWorld(contactPoint) : contactPoint
+    const movement = secondStart.sub(firstStart)
+
+    this.scheduleTrail(first, 0.06, 0.18, movement, worldContactPoint)
   }
 
   private scheduleTrail(
@@ -59,6 +71,7 @@ export class CubeStarEmitter {
     delay: number,
     duration: number,
     movementDirection: THREE.Vector3,
+    origin?: THREE.Vector3,
   ): void {
     const timeline = gsap.timeline({
       onComplete: () => {
@@ -67,20 +80,27 @@ export class CubeStarEmitter {
     })
 
     for (let elapsed = delay; elapsed < delay + duration; elapsed += 0.045) {
-      timeline.call(() => this.burst(cube, 2, movementDirection), [], elapsed)
+      timeline.call(() => this.burst(cube, 2, movementDirection, origin), [], elapsed)
     }
 
     this.trailTimelines.add(timeline)
   }
 
-  private burst(cube: Cube, count: number, movementDirection: THREE.Vector3): void {
-    const origin = cube.localToWorld(
-      new THREE.Vector3(
-        THREE.MathUtils.randFloatSpread(cube.cubeGeometry.axis * 0.65),
-        THREE.MathUtils.randFloatSpread(cube.cubeGeometry.axis * 0.65),
-        THREE.MathUtils.randFloatSpread(cube.cubeGeometry.axis * 0.65),
-      ),
-    )
+  private burst(
+    cube: Cube,
+    count: number,
+    movementDirection: THREE.Vector3,
+    source?: THREE.Vector3,
+  ): void {
+    const origin = (source ?? cube.getWorldPosition(new THREE.Vector3()))
+      .clone()
+      .add(
+        new THREE.Vector3(
+          THREE.MathUtils.randFloatSpread(cube.cubeGeometry.axis * 0.35),
+          THREE.MathUtils.randFloatSpread(cube.cubeGeometry.axis * 0.35),
+          THREE.MathUtils.randFloatSpread(cube.cubeGeometry.axis * 0.35),
+        ),
+      )
     const oppositeDirection = movementDirection.clone().normalize().negate()
 
     for (let index = 0; index < count; index += 1) {

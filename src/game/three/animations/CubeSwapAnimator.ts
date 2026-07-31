@@ -39,6 +39,7 @@ export class CubeSwapAnimator {
 
     gsap.killTweensOf(first.position)
     this.shakeAnimator.startOnce(first, 0.07)
+    this.shakeAnimator.startOnce(second, 0.03)
 
     this.timeline = gsap
       .timeline({
@@ -61,7 +62,7 @@ export class CubeSwapAnimator {
           duration: 0.06,
           ease: 'power2.in',
         },
-        0.3,
+        0,
       )
       .to(
         first.position,
@@ -69,10 +70,10 @@ export class CubeSwapAnimator {
           x: firstStart.x,
           y: firstStart.y,
           z: firstStart.z,
-          duration: 0.1,
+          duration: 0.3,
           ease: 'power2.out',
         },
-        0.36,
+        0.06,
       )
       .to(
         second.position,
@@ -83,7 +84,7 @@ export class CubeSwapAnimator {
           duration: 0.3,
           ease: 'power2.out',
         },
-        0.36,
+        0.06,
       )
   }
 
