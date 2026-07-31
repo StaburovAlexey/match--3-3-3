@@ -65,7 +65,7 @@ export class CubeStarEmitter {
     const secondMovement = firstStart.clone().sub(secondStart)
 
     this.scheduleTrail(first, 0.06, 0.18, firstMovement, worldContactPoint)
-    this.scheduleTrail(second, 0.06, 0.18, secondMovement)
+    this.scheduleTrail(second, 0.06, 0.18, secondMovement, worldContactPoint)
   }
 
   private scheduleTrail(
