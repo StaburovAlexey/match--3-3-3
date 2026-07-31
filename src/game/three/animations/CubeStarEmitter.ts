@@ -64,8 +64,8 @@ export class CubeStarEmitter {
     const firstMovement = secondStart.clone().sub(firstStart)
     const secondMovement = firstStart.clone().sub(secondStart)
 
-    this.scheduleTrail(first, 0.06, 0.18, firstMovement, worldContactPoint)
-    this.scheduleTrail(second, 0.06, 0.18, secondMovement, worldContactPoint)
+    this.scheduleTrail(first, 0.06, 0.18, firstMovement, worldContactPoint, true)
+    this.scheduleTrail(second, 0.06, 0.18, secondMovement, worldContactPoint, true)
   }
 
   private scheduleTrail(
@@ -74,6 +74,7 @@ export class CubeStarEmitter {
     duration: number,
     movementDirection: THREE.Vector3,
     origin?: THREE.Vector3,
+    spreadAroundAxis = false,
   ): void {
     const timeline = gsap.timeline({
       onComplete: () => {
@@ -82,7 +83,11 @@ export class CubeStarEmitter {
     })
 
     for (let elapsed = delay; elapsed < delay + duration; elapsed += 0.045) {
-      timeline.call(() => this.burst(cube, 2, movementDirection, origin), [], elapsed)
+      timeline.call(
+        () => this.burst(cube, 2, movementDirection, origin, spreadAroundAxis),
+        [],
+        elapsed,
+      )
     }
 
     this.trailTimelines.add(timeline)
@@ -93,6 +98,7 @@ export class CubeStarEmitter {
     count: number,
     movementDirection: THREE.Vector3,
     source?: THREE.Vector3,
+    spreadAroundAxis = false,
   ): void {
     const origin = (source ?? cube.getWorldPosition(new THREE.Vector3()))
       .clone()
@@ -118,11 +124,13 @@ export class CubeStarEmitter {
         THREE.MathUtils.randFloat(-0.7, 1.4),
         THREE.MathUtils.randFloatSpread(2),
       ).normalize()
-      const direction = oppositeDirection
-        .clone()
-        .multiplyScalar(0.8)
-        .add(randomSpread.multiplyScalar(0.75))
-        .normalize()
+      const direction = spreadAroundAxis
+        ? this.getCircumferenceDirection(movementDirection)
+        : oppositeDirection
+            .clone()
+            .multiplyScalar(0.8)
+            .add(randomSpread.multiplyScalar(0.75))
+            .normalize()
       const distance = THREE.MathUtils.randFloat(0.16, 0.4)
       const target = origin.clone().addScaledVector(direction, distance)
       const size = THREE.MathUtils.randFloat(0.012, 0.025)
@@ -180,6 +188,17 @@ export class CubeStarEmitter {
 
       this.particleTimelines.add(timeline)
     }
+  }
+
+  private getCircumferenceDirection(axisDirection: THREE.Vector3): THREE.Vector3 {
+    const axis = axisDirection.clone().normalize()
+    const reference =
+      Math.abs(axis.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0)
+    const firstBasis = new THREE.Vector3().crossVectors(axis, reference).normalize()
+    const secondBasis = new THREE.Vector3().crossVectors(axis, firstBasis).normalize()
+    const angle = THREE.MathUtils.randFloat(0, Math.PI * 2)
+
+    return firstBasis.multiplyScalar(Math.cos(angle)).addScaledVector(secondBasis, Math.sin(angle))
   }
 
   private createTexture(): THREE.CanvasTexture {
