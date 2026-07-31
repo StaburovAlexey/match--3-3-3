@@ -61,9 +61,11 @@ export class CubeStarEmitter {
     const firstImpact = firstStart.clone().lerp(secondStart, impactProgress)
     const contactPoint = firstImpact.clone().lerp(secondStart, 0.5)
     const worldContactPoint = first.parent ? first.parent.localToWorld(contactPoint) : contactPoint
-    const movement = secondStart.sub(firstStart)
+    const firstMovement = secondStart.clone().sub(firstStart)
+    const secondMovement = firstStart.clone().sub(secondStart)
 
-    this.scheduleTrail(first, 0.06, 0.18, movement, worldContactPoint)
+    this.scheduleTrail(first, 0.06, 0.18, firstMovement, worldContactPoint)
+    this.scheduleTrail(second, 0.06, 0.18, secondMovement)
   }
 
   private scheduleTrail(
