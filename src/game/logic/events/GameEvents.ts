@@ -1,5 +1,5 @@
-import type { Cube } from '../../three/objects/Cube.ts'
-import type { ElementType } from '../../three/materials/ElementMaterialConfig.ts'
+import type { ArrowOrientation, Cube, MatchDirection } from '../../three/objects/Cube.ts'
+import type { ElementType, SuperElementType } from '../../three/materials/ElementMaterialConfig.ts'
 import { Emitter } from './Emitter'
 
 export interface CubeEventPayload {
@@ -13,8 +13,12 @@ export interface SwapEventPayload {
 
 export interface MatchGroup {
   elementType: ElementType
+  direction: MatchDirection
   startCube: Cube
   cubes: Cube[]
+  specialCube?: Cube
+  specialType?: SuperElementType
+  specialOrientation?: ArrowOrientation
 }
 
 export interface MatchesEventPayload {

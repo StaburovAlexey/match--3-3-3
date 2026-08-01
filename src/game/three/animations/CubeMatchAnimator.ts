@@ -1,21 +1,29 @@
 import { gsap } from 'gsap'
 import { gameEvents } from '../../logic/events/GameEvents.ts'
 import type { MatchGroup, MatchesEventPayload } from '../../logic/events/GameEvents.ts'
+import { CubeArrowIdleAnimator } from './CubeArrowIdleAnimator.ts'
+import { CubeArrowMatchAnimator } from './CubeArrowMatchAnimator.ts'
+import { CubeShakeAnimator } from './CubeShakeAnimator.ts'
 
 export class CubeMatchAnimator {
   private readonly unsubscribe: () => void
   private timeline: gsap.core.Timeline | null = null
+  private readonly arrowIdleAnimator: CubeArrowIdleAnimator
+  private readonly arrowMatchAnimator: CubeArrowMatchAnimator
   private readonly growScale = 1.12
   private readonly growDuration = 0.07
   private readonly shrinkDuration = 0.14
   private readonly staggerDuration = 0.11
 
-  constructor() {
+  constructor(shakeAnimator: CubeShakeAnimator) {
+    this.arrowIdleAnimator = new CubeArrowIdleAnimator()
+    this.arrowMatchAnimator = new CubeArrowMatchAnimator(shakeAnimator)
     this.unsubscribe = gameEvents.on('matches-found', this.handleMatchesFound)
   }
 
   private handleMatchesFound = ({ matches }: MatchesEventPayload): void => {
     this.timeline?.kill()
+    this.arrowMatchAnimator.destroy()
     this.timeline = null
 
     if (matches.length === 0) {
@@ -31,13 +39,19 @@ export class CubeMatchAnimator {
         gameEvents.emit('matches-cleared', undefined)
       },
       onInterrupt: () => {
+        this.arrowMatchAnimator.destroy()
         this.timeline = null
         gameEvents.emit('field-ready-changed', true)
       },
     })
 
     matches.forEach((group) => {
-      const groupTimeline = this.createGroupTimeline(group)
+      const activatedArrows = group.cubes.filter((cube) => cube.getSpecialType === 'arrow')
+      const hasActivatedArrow = activatedArrows.length > 0
+      activatedArrows.forEach((cube) => this.arrowIdleAnimator.stop(cube))
+      const groupTimeline = hasActivatedArrow
+        ? this.arrowMatchAnimator.createTimeline(group.cubes)
+        : this.createGroupTimeline(group)
       this.timeline?.add(groupTimeline, 0)
     })
   }
@@ -46,6 +60,40 @@ export class CubeMatchAnimator {
     const timeline = gsap.timeline()
 
     group.cubes.forEach((cube, index) => {
+      if (group.specialCube === cube && group.specialType) {
+        cube.visible = true
+        cube.setSpecialType(group.specialType, group.specialOrientation ?? null)
+        timeline
+          .to(
+            cube.scale,
+            {
+              x: 1.2,
+              y: 1.2,
+              z: 1.2,
+              duration: this.growDuration,
+              ease: 'back.out(1.7)',
+            },
+            0,
+          )
+          .to(
+            cube.scale,
+            {
+              x: 1,
+              y: 1,
+              z: 1,
+              duration: this.shrinkDuration,
+              ease: 'power2.out',
+              onComplete: () => {
+                if (group.specialType === 'arrow' && group.specialOrientation) {
+                  this.arrowIdleAnimator.start(cube, group.specialOrientation)
+                }
+              },
+            },
+            this.growDuration,
+          )
+        return
+      }
+
       const start = index * this.staggerDuration
 
       timeline
@@ -69,6 +117,7 @@ export class CubeMatchAnimator {
             duration: this.shrinkDuration,
             ease: 'power2.in',
             onComplete: () => {
+              cube.setSpecialType(null)
               cube.visible = false
             },
           },
@@ -82,6 +131,8 @@ export class CubeMatchAnimator {
   destroy(): void {
     this.unsubscribe()
     this.timeline?.kill()
+    this.arrowIdleAnimator.destroy()
+    this.arrowMatchAnimator.destroy()
     this.timeline = null
   }
 }

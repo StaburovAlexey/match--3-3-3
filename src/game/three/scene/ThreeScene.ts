@@ -71,14 +71,14 @@ export default class ThreeScene {
 
     /*        this.scene.add(new THREE.GridHelper(10, 10, 0x64748b, 0x334155))*/
     this.scene.add(new THREE.AxesHelper(3))
-    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x475569, 2))
+    // this.scene.add(new THREE.HemisphereLight(0xffffff, 0x475569, 2))
 
     this.grid = new CubesGrid()
     this.cubesGroup = new GroupCubes()
     this.selectionController = new SelectionController(this.grid)
     this.shakeAnimator = new CubeShakeAnimator()
     this.matchResolver = new MatchResolver(this.grid)
-    this.matchAnimator = new CubeMatchAnimator()
+    this.matchAnimator = new CubeMatchAnimator(this.shakeAnimator)
     this.refillAnimator = new CubeRefillAnimator(this.grid, this.cubesGroup)
     this.rebuildAnimator = new CubeRebuildAnimator(
       this.grid,

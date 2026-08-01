@@ -1,5 +1,8 @@
-export type ElementType = 'ice' | 'fire' | 'earth' | 'dark' | 'light'
+export const elementTypes = ['ice', 'fire', 'earth', 'dark'] as const
+export const superElementTypes = ['bomb', 'arrow'] as const
 
+export type ElementType = (typeof elementTypes)[number]
+export type SuperElementType = (typeof superElementTypes)[number]
 export interface CrackPalette {
   materialColor: number
   crackColor: number
@@ -18,10 +21,8 @@ export type TransformCrack = {
   deformStrength: number
   deformSpeed: number
 }
-export type CrackPalettes = Record<ElementType, CrackPalette>
-export type SettingCrack = Record<ElementType, TransformCrack>
-export const elementTypes: ElementType[] = ['ice', 'fire', 'earth', 'dark', 'light']
-
+export type CrackPalettes = Record<ElementType | SuperElementType, CrackPalette>
+export type SettingCrack = Record<ElementType | SuperElementType, TransformCrack>
 export const crackPalettes: CrackPalettes = {
   ice: {
     materialColor: 0x5c92ff,
@@ -51,6 +52,18 @@ export const crackPalettes: CrackPalettes = {
     materialColor: 0xffffff,
     crackColor: 0xccd5ff,
     fillColor: 0xfffbf0,
+    highlightColor: 0xffffff,
+  },
+  bomb: {
+    materialColor: 0xffb300,
+    crackColor: 0x6d4600,
+    fillColor: 0xffd54f,
+    highlightColor: 0xffffff,
+  },
+  arrow: {
+    materialColor: 0x80deea,
+    crackColor: 0x006064,
+    fillColor: 0xb2ebf2,
     highlightColor: 0xffffff,
   },
 }
@@ -110,5 +123,27 @@ export const SettingCrack: SettingCrack = {
     highlightGlow: 2.9,
     deformStrength: 0.1,
     deformSpeed: 0.7,
+  },
+  bomb: {
+    scale: 9.4,
+    width: 0.2,
+    strength: 0.58,
+    fillStrength: 1,
+    highlightStrength: 0.8,
+    highlightSpeed: 2,
+    highlightGlow: 3,
+    deformStrength: 0.06,
+    deformSpeed: 1,
+  },
+  arrow: {
+    scale: 9.4,
+    width: 0.2,
+    strength: 0.58,
+    fillStrength: 1,
+    highlightStrength: 0.8,
+    highlightSpeed: 2,
+    highlightGlow: 3,
+    deformStrength: 0.06,
+    deformSpeed: 1,
   },
 }

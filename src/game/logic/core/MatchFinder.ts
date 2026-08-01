@@ -1,11 +1,11 @@
-import type { Cube, GridPosition } from '../../three/objects/Cube.ts'
+import type { Cube, GridPosition, MatchDirection } from '../../three/objects/Cube.ts'
 import type { MatchGroup } from '../events/GameEvents.ts'
 import CubesGrid from './cubesGrid.ts'
 
-const directions: GridPosition[] = [
-  { x: 1, y: 0, z: 0 },
-  { x: 0, y: 1, z: 0 },
-  { x: 0, y: 0, z: 1 },
+const directions: Array<{ axis: MatchDirection; vector: GridPosition }> = [
+  { axis: 'x', vector: { x: 1, y: 0, z: 0 } },
+  { axis: 'y', vector: { x: 0, y: 1, z: 0 } },
+  { axis: 'z', vector: { x: 0, y: 0, z: 1 } },
 ]
 
 export default class MatchFinder {
@@ -19,7 +19,7 @@ export default class MatchFinder {
     const queue = [...cubes]
     const seedCubes = new Set(cubes)
     const checkedCubes = new Set<Cube>()
-    const lines: Cube[][] = []
+    const lines: Array<{ cubes: Cube[]; direction: MatchDirection }> = []
     const lineKeys = new Set<string>()
 
     while (queue.length > 0) {
@@ -42,13 +42,13 @@ export default class MatchFinder {
       }
 
       for (const direction of directions) {
-        const start = this.findLineStart(position, direction, cube.elementType)
-        const line = this.collectLine(start, direction, cube.elementType)
+        const start = this.findLineStart(position, direction.vector, cube.elementType)
+        const line = this.collectLine(start, direction.vector, cube.elementType)
         const lineKey = line.map((lineCube) => lineCube.getUuidGrid).join('|')
 
         if (line.length >= 3 && !lineKeys.has(lineKey)) {
           lineKeys.add(lineKey)
-          lines.push(line)
+          lines.push({ cubes: line, direction: direction.axis })
           line.forEach((lineCube) => {
             if (!checkedCubes.has(lineCube)) {
               queue.push(lineCube)
@@ -61,30 +61,46 @@ export default class MatchFinder {
     return this.createMatchGroups(lines, seedCubes)
   }
 
-  private createMatchGroups(lines: Cube[][], seedCubes: Set<Cube>): MatchGroup[] {
-    const groups: Array<{ elementType: Cube['elementType']; cubes: Set<Cube>; startCube: Cube }> =
-      []
+  private createMatchGroups(
+    lines: Array<{ cubes: Cube[]; direction: MatchDirection }>,
+    seedCubes: Set<Cube>,
+  ): MatchGroup[] {
+    const groups: Array<{
+      elementType: Cube['elementType']
+      cubes: Set<Cube>
+      startCube: Cube
+      direction: MatchDirection
+    }> = []
 
     lines.forEach((line) => {
-      const matchingGroups = groups.filter((group) => line.some((cube) => group.cubes.has(cube)))
+      const matchingGroups = groups.filter((group) =>
+        line.cubes.some((cube) => group.cubes.has(cube)),
+      )
+      const startCube = this.getStartCube(line.cubes, seedCubes)
 
       if (matchingGroups.length === 0) {
         groups.push({
-          elementType: line[0].elementType,
-          cubes: new Set(line),
-          startCube: this.getStartCube(line, seedCubes),
+          elementType: line.cubes[0].elementType,
+          cubes: new Set(line.cubes),
+          startCube,
+          direction: line.direction,
         })
         return
       }
 
       const firstGroup = matchingGroups[0]
-      line.forEach((cube) => firstGroup.cubes.add(cube))
+      line.cubes.forEach((cube) => firstGroup.cubes.add(cube))
+
+      if (line.cubes.includes(firstGroup.startCube)) {
+        firstGroup.direction = line.direction
+      }
 
       matchingGroups.slice(1).forEach((group) => {
         group.cubes.forEach((cube) => firstGroup.cubes.add(cube))
 
         if (seedCubes.has(group.startCube)) {
           firstGroup.startCube = group.startCube
+          firstGroup.direction = group.direction
         }
 
         const groupIndex = groups.indexOf(group)
@@ -94,6 +110,7 @@ export default class MatchFinder {
 
     return groups.map((group) => ({
       elementType: group.elementType,
+      direction: group.direction,
       startCube: group.startCube,
       cubes: this.orderGroupCubes(group.cubes, group.startCube),
     }))
