@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { elementTypes } from '../materials/ElementMaterialConfig.ts'
+import { elementTypes, type SuperElementType } from '../materials/ElementMaterialConfig.ts'
 import { Cube, type CubeGeometryConfig } from './Cube.ts'
 import { MaterialsCubes, type Cracks } from '../materials/MaterialsCubes.ts'
 export default class GroupCubes {
@@ -68,6 +68,13 @@ export default class GroupCubes {
 
   getMaterial(type: Cube['elementType']): THREE.MeshMatcapMaterial {
     return this.materials.getMaterialsCube(type)
+  }
+
+  getSpecialMaterial(
+    elementType: Cube['elementType'],
+    specialType: SuperElementType,
+  ): THREE.MeshMatcapMaterial {
+    return this.materials.getSpecialMaterial(elementType, specialType)
   }
 
   getLocalPosition(position: { x: number; y: number; z: number }): THREE.Vector3 {

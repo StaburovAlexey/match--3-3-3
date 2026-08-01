@@ -78,7 +78,7 @@ export default class ThreeScene {
     this.selectionController = new SelectionController(this.grid)
     this.shakeAnimator = new CubeShakeAnimator()
     this.matchResolver = new MatchResolver(this.grid)
-    this.matchAnimator = new CubeMatchAnimator(this.shakeAnimator)
+    this.matchAnimator = new CubeMatchAnimator(this.shakeAnimator, this.cubesGroup)
     this.refillAnimator = new CubeRefillAnimator(this.grid, this.cubesGroup)
     this.rebuildAnimator = new CubeRebuildAnimator(
       this.grid,

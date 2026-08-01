@@ -21,7 +21,7 @@ export class Cube extends THREE.Mesh<THREE.BufferGeometry, THREE.MeshMatcapMater
   public elementType: ElementType
   private specialType: SuperElementType | null = null
   private specialOrientation: ArrowOrientation | null = null
-  private specialVisual: THREE.Group | null = null
+  private baseMaterial: THREE.MeshMatcapMaterial
   readonly cubeGeometry: CubeGeometryConfig
   private gridPosition!: GridPosition
   private uuidGrid: string = ''
@@ -42,6 +42,7 @@ export class Cube extends THREE.Mesh<THREE.BufferGeometry, THREE.MeshMatcapMater
       cubeGeometry.radius,
     )
     super(geometry, material)
+    this.baseMaterial = material
     this.cubeGeometry = cubeGeometry
     this.elementType = type
   }
@@ -56,31 +57,18 @@ export class Cube extends THREE.Mesh<THREE.BufferGeometry, THREE.MeshMatcapMater
   setElement(type: ElementType, material: THREE.MeshMatcapMaterial): void {
     this.setSpecialType(null)
     this.elementType = type
+    this.baseMaterial = material
     this.material = material
   }
 
-  setSpecialType(type: SuperElementType | null, orientation: ArrowOrientation | null = null): void {
-    this.clearSpecialVisual()
+  setSpecialType(
+    type: SuperElementType | null,
+    orientation: ArrowOrientation | null = null,
+    specialMaterial?: THREE.MeshMatcapMaterial,
+  ): void {
     this.specialType = type
     this.specialOrientation = type === 'arrow' ? orientation : null
-
-    if (!type || type === 'arrow') {
-      return
-    }
-
-    const visual = new THREE.Group()
-    const material = new THREE.MeshBasicMaterial({
-      color: 0xffd54f,
-      depthTest: false,
-      depthWrite: false,
-    })
-    const markerSize = this.cubeGeometry.axis
-    const bomb = new THREE.Mesh(new THREE.SphereGeometry(markerSize * 0.25, 10, 8), material)
-    visual.add(bomb)
-
-    visual.renderOrder = 2
-    this.add(visual)
-    this.specialVisual = visual
+    this.material = type && specialMaterial ? specialMaterial : this.baseMaterial
   }
 
   get getSpecialType(): SuperElementType | null {
@@ -89,24 +77,6 @@ export class Cube extends THREE.Mesh<THREE.BufferGeometry, THREE.MeshMatcapMater
 
   get getSpecialOrientation(): ArrowOrientation | null {
     return this.specialOrientation
-  }
-
-  private clearSpecialVisual(): void {
-    if (!this.specialVisual) {
-      return
-    }
-
-    this.specialVisual.traverse((object) => {
-      if (!(object instanceof THREE.Mesh)) {
-        return
-      }
-
-      object.geometry.dispose()
-      const material = object.material
-      material.dispose()
-    })
-    this.specialVisual.removeFromParent()
-    this.specialVisual = null
   }
 
   get positionOnGrid(): GridPosition {

@@ -7,6 +7,7 @@ import type { ArrowOrientation, Cube, GridPosition } from '../../three/objects/C
 import type { SuperElementType } from '../../three/materials/ElementMaterialConfig.ts'
 
 export default class MatchResolver {
+  private readonly bombRadius = 2
   private readonly grid: CubesGrid
   private readonly finder: MatchFinder
   private readonly validator: MatchValidator
@@ -60,7 +61,7 @@ export default class MatchResolver {
         }
       })
 
-      if (group.cubes.length === 4 || group.cubes.length === 5) {
+      if (group.cubes.length >= 4) {
         const hasExistingSpecial = group.cubes.some((cube) => cube.getSpecialType)
 
         if (!hasExistingSpecial) {
@@ -127,7 +128,7 @@ export default class MatchResolver {
       ? orientation
         ? this.getArrowSegmentCubes(position, orientation)
         : []
-      : this.getOuterFaceCubes(position)
+      : this.getBombAreaCubes(position)
   }
 
   private getArrowSegmentCubes(position: GridPosition, orientation: ArrowOrientation): Cube[] {
@@ -145,43 +146,21 @@ export default class MatchResolver {
     return Array.from(result)
   }
 
-  private getOuterFaceCubes(position: GridPosition): Cube[] {
-    const bounds = this.getGridBounds()
+  private getBombAreaCubes(position: GridPosition): Cube[] {
     const result = new Set<Cube>()
-    const onXFace = this.isBoundary(position.x, bounds.x)
-    const onYFace = this.isBoundary(position.y, bounds.y)
-    const onZFace = this.isBoundary(position.z, bounds.z)
 
     this.grid.items.forEach(({ cube, position: candidate }) => {
-      if (
-        cube.visible &&
-        ((onXFace && candidate.x === position.x) ||
-          (onYFace && candidate.y === position.y) ||
-          (onZFace && candidate.z === position.z))
-      ) {
+      const isWithinBombRadius =
+        Math.abs(candidate.x - position.x) <= this.bombRadius &&
+        Math.abs(candidate.y - position.y) <= this.bombRadius &&
+        Math.abs(candidate.z - position.z) <= this.bombRadius
+
+      if (cube.visible && isWithinBombRadius) {
         result.add(cube)
       }
     })
 
     return Array.from(result)
-  }
-
-  private getGridBounds(): { x: [number, number]; y: [number, number]; z: [number, number] } {
-    const positions = this.grid.items.map(({ position }) => position)
-
-    return {
-      x: this.getBoundsForAxis(positions.map(({ x }) => x)),
-      y: this.getBoundsForAxis(positions.map(({ y }) => y)),
-      z: this.getBoundsForAxis(positions.map(({ z }) => z)),
-    }
-  }
-
-  private getBoundsForAxis(values: number[]): [number, number] {
-    return [Math.min(...values), Math.max(...values)]
-  }
-
-  private isBoundary(value: number, bounds: [number, number]): boolean {
-    return value === bounds[0] || value === bounds[1]
   }
 
   destroy(): void {
