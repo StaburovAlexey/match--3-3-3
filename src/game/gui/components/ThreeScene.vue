@@ -1,25 +1,24 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, useTemplateRef } from 'vue'
-import ThreeScene from '../../three/scene/ThreeScene'
+import { onBeforeUnmount, onMounted, shallowRef, useTemplateRef } from 'vue'
+import { ThreeGameRuntime } from '../../runtime/ThreeGameRuntime.ts'
 import GameControls from './GameControls.vue'
-import { gameEvents } from '../../logic/events/GameEvents.ts'
 
 const container = useTemplateRef<HTMLDivElement>('container')
-let scene: ThreeScene | null = null
+const runtime = shallowRef<ThreeGameRuntime | null>(null)
 
 onMounted(() => {
-  if (container.value) {
-    scene = new ThreeScene(container.value)
-  }
+  if (!container.value) return
+  runtime.value = new ThreeGameRuntime(container.value)
+  void runtime.value.start()
 })
 
 onBeforeUnmount(() => {
-  scene?.dispose()
-  scene = null
+  runtime.value?.dispose()
+  runtime.value = null
 })
 
 function rebuildBoard(): void {
-  gameEvents.emit('board-rebuild-requested', { reason: 'manual' })
+  void runtime.value?.rebuildBoard()
 }
 </script>
 
