@@ -13,6 +13,7 @@ import {
   createBombExplosionConfig,
   type BombExplosionConfig,
 } from '../effects/BombExplosionConfig.ts'
+import { SparkBurstAnimator } from '../effects/SparkBurstAnimator.ts'
 import { ThreeScene } from '../scene/ThreeScene.ts'
 
 interface BombExplosionLabSettings {
@@ -47,6 +48,7 @@ export class BombExplosionLabRuntime {
   private readonly shake = new CubeShakeAnimator()
   private readonly specialClear = new SpecialClearAnimator(this.shake)
   private readonly config = createBombExplosionConfig()
+  private readonly sparks: SparkBurstAnimator
   private readonly explosion: BombExplosionAnimator
   private readonly gui: GUI
   private readonly settings: BombExplosionLabSettings = {
@@ -70,7 +72,13 @@ export class BombExplosionLabRuntime {
     this.scene = new ThreeScene(sceneContainer)
     this.board = new CubeBoardView(this.items)
     this.scene.scene.add(this.board.object)
-    this.explosion = new BombExplosionAnimator(this.scene.scene, this.board, this.config)
+    this.sparks = new SparkBurstAnimator(this.scene.scene, this.board, this.config)
+    this.explosion = new BombExplosionAnimator(
+      this.scene.scene,
+      this.board,
+      this.sparks,
+      this.config,
+    )
     this.actions = {
       play: () => this.play(),
       randomize: () => this.play(),
@@ -123,6 +131,7 @@ export class BombExplosionLabRuntime {
     this.stopPlayback()
     this.gui.destroy()
     this.explosion.destroy()
+    this.sparks.destroy()
     this.specialClear.destroy()
     this.shake.destroy()
     this.board.dispose()
@@ -317,6 +326,7 @@ export class BombExplosionLabRuntime {
     this.playback?.kill()
     this.playback = null
     this.explosion.stop()
+    this.sparks.stop()
     this.specialClear.finish(this.board.cubes)
   }
 

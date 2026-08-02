@@ -1,14 +1,7 @@
-export interface BombExplosionConfig {
+import { createSparkBurstConfig, type SparkBurstConfig } from './SparkBurstConfig.ts'
+
+export interface BombExplosionConfig extends SparkBurstConfig {
   chainDelay: number
-  particleCount: number
-  particleSize: number
-  particleEndSize: number
-  particleDistanceMin: number
-  particleDistanceMax: number
-  particleDuration: number
-  particleFadeDelay: number
-  particleFadeDuration: number
-  gravity: number
   explosionRadius: number
   flashSize: number
   flashGrowDuration: number
@@ -23,37 +16,18 @@ export interface BombExplosionConfig {
   ringDuration: number
   ringFadeDelay: number
   ringFadeDuration: number
-  particleOpacity: number
-  alphaTest: number
-  useElementColors: boolean
   flashColor: string
   ringColor: string
-  particleColor: string
   darkFlashColor: string
   darkRingColor: string
-  darkParticleColor: string
   flashWhiteMix: number
   ringHighlightMix: number
-  particleWhiteMix: number
-  depthTest: boolean
-  depthWrite: boolean
-  additiveBlending: boolean
-  toneMapped: boolean
-  renderOrderBase: number
 }
 
 export function createBombExplosionConfig(): BombExplosionConfig {
   return {
+    ...createSparkBurstConfig(),
     chainDelay: 0.1,
-    particleCount: 30,
-    particleSize: 0.075,
-    particleEndSize: 0,
-    particleDistanceMin: 0.77,
-    particleDistanceMax: 0.94,
-    particleDuration: 1.07,
-    particleFadeDelay: 0,
-    particleFadeDuration: 1.18,
-    gravity: 0.1,
     explosionRadius: 0.69,
     flashSize: 0.78,
     flashGrowDuration: 0.21,
@@ -68,22 +42,11 @@ export function createBombExplosionConfig(): BombExplosionConfig {
     ringDuration: 0.89,
     ringFadeDelay: 0,
     ringFadeDuration: 0.63,
-    particleOpacity: 1,
-    alphaTest: 0.01,
-    useElementColors: true,
     flashColor: '#ffffff',
     ringColor: '#ffb347',
-    particleColor: '#fff4bd',
     darkFlashColor: '#240033',
     darkRingColor: '#7c2cff',
-    darkParticleColor: '#b45cff',
     flashWhiteMix: 0.24,
     ringHighlightMix: 0.95,
-    particleWhiteMix: 0.19,
-    depthTest: false,
-    depthWrite: false,
-    additiveBlending: true,
-    toneMapped: false,
-    renderOrderBase: 40,
   }
 }

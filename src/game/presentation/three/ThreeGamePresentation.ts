@@ -11,8 +11,10 @@ import { CubeSwapAnimator } from './animation/CubeSwapAnimator.ts'
 import { SpecialClearAnimator } from './animation/SpecialClearAnimator.ts'
 import type { CubeBoardView } from './board/CubeBoardView.ts'
 import { BombExplosionAnimator } from './effects/BombExplosionAnimator.ts'
+import { createBombExplosionConfig } from './effects/BombExplosionConfig.ts'
 import { ColorLightningAnimator } from './effects/ColorLightningAnimator.ts'
 import type { CubeStarEmitter } from './effects/CubeStarEmitter.ts'
+import { SparkBurstAnimator } from './effects/SparkBurstAnimator.ts'
 
 export class ThreeGamePresentation implements GamePresentation {
   private readonly shake = new CubeShakeAnimator()
@@ -27,11 +29,14 @@ export class ThreeGamePresentation implements GamePresentation {
   constructor(board: CubeBoardView, stars: CubeStarEmitter, scene: THREE.Scene) {
     this.board = board
     this.stars = stars
+    const explosionConfig = createBombExplosionConfig()
+    const sparks = new SparkBurstAnimator(scene, board, explosionConfig)
     this.matchAnimator = new CubeMatchAnimator(
       board,
       new SpecialClearAnimator(this.shake),
       new ColorLightningAnimator(scene, board),
-      new BombExplosionAnimator(scene, board),
+      new BombExplosionAnimator(scene, board, sparks, explosionConfig),
+      sparks,
     )
     this.refillAnimator = new CubeRefillAnimator(board)
   }

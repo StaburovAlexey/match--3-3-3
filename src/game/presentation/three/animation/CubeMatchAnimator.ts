@@ -12,6 +12,7 @@ import {
   ColorLightningAnimator,
   type LightningEffectTiming,
 } from '../effects/ColorLightningAnimator.ts'
+import { SparkBurstAnimator } from '../effects/SparkBurstAnimator.ts'
 import { SpecialClearAnimator } from './SpecialClearAnimator.ts'
 import { SpecialIdleAnimator } from './SpecialIdleAnimator.ts'
 import { TimelineScope } from './TimelineScope.ts'
@@ -27,17 +28,20 @@ export class CubeMatchAnimator {
   private readonly board: CubeBoardView
   private readonly lightning: ColorLightningAnimator
   private readonly bombExplosion: BombExplosionAnimator
+  private readonly sparks: SparkBurstAnimator
 
   constructor(
     board: CubeBoardView,
     specialClear: SpecialClearAnimator,
     lightning: ColorLightningAnimator,
     bombExplosion: BombExplosionAnimator,
+    sparks: SparkBurstAnimator,
   ) {
     this.board = board
     this.specialClear = specialClear
     this.lightning = lightning
     this.bombExplosion = bombExplosion
+    this.sparks = sparks
   }
 
   play(resolution: MatchResolution): Promise<AnimationResult> {
@@ -92,6 +96,7 @@ export class CubeMatchAnimator {
     this.specialClear.destroy()
     this.lightning.destroy()
     this.bombExplosion.destroy()
+    this.sparks.destroy()
   }
 
   private createSequentialTimeline(
@@ -193,7 +198,9 @@ export class CubeMatchAnimator {
       )
     }
     const sparksByTime = new Map<number, BoardPiece[]>()
+    const bombSourceIds = new Set(bombEffects.map(({ source }) => source.id))
     pieces.forEach((piece) => {
+      if (bombSourceIds.has(piece.id)) return
       const time = (schedule.clearStarts.get(piece.id) ?? 0) + this.specialClear.peakTime
       const key = Math.round(time * 1000) / 1000
       const atTime = sparksByTime.get(key) ?? []
@@ -203,7 +210,7 @@ export class CubeMatchAnimator {
     sparksByTime.forEach((sparkPieces, time) => {
       timeline.call(
         () => {
-          this.bombExplosion.createClearSparkTimeline(sparkPieces)
+          this.sparks.createTimeline(sparkPieces.map((piece) => ({ piece })))
         },
         [],
         time,

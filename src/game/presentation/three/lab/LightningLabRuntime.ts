@@ -8,12 +8,12 @@ import { elementTypes, type ElementType } from '../../../core/model/Element.ts'
 import { CubeShakeAnimator } from '../animation/CubeShakeAnimator.ts'
 import { SpecialClearAnimator } from '../animation/SpecialClearAnimator.ts'
 import { CubeBoardView } from '../board/CubeBoardView.ts'
-import { BombExplosionAnimator } from '../effects/BombExplosionAnimator.ts'
 import { ColorLightningAnimator } from '../effects/ColorLightningAnimator.ts'
 import {
   createColorLightningConfig,
   type ColorLightningConfig,
 } from '../effects/ColorLightningConfig.ts'
+import { SparkBurstAnimator } from '../effects/SparkBurstAnimator.ts'
 import { ThreeScene } from '../scene/ThreeScene.ts'
 
 interface LightningLabSettings {
@@ -42,7 +42,7 @@ export class LightningLabRuntime {
   private readonly shake = new CubeShakeAnimator()
   private readonly specialClear = new SpecialClearAnimator(this.shake)
   private readonly lightning: ColorLightningAnimator
-  private readonly sparks: BombExplosionAnimator
+  private readonly sparks: SparkBurstAnimator
   private readonly gui: GUI
   private readonly settings: LightningLabSettings = {
     elementType: 'ice',
@@ -70,7 +70,7 @@ export class LightningLabRuntime {
     this.board.cubes.forEach((cube) => cube.scale.setScalar(this.settings.cubeScale))
     this.scene.scene.add(this.board.object)
     this.lightning = new ColorLightningAnimator(this.scene.scene, this.board, this.config)
-    this.sparks = new BombExplosionAnimator(this.scene.scene, this.board)
+    this.sparks = new SparkBurstAnimator(this.scene.scene, this.board)
     this.actions = {
       play: () => this.play(),
       randomize: () => this.play(),
@@ -116,7 +116,7 @@ export class LightningLabRuntime {
     effect.pieces.forEach((piece) => {
       timeline.call(
         () => {
-          this.sparks.createClearSparkTimeline([piece])
+          this.sparks.createTimeline([{ piece }])
         },
         [],
         (clearStarts.get(piece.id) ?? 0) + this.specialClear.peakTime,
