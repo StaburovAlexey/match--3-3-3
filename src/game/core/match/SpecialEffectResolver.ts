@@ -22,41 +22,44 @@ export class SpecialEffectResolver {
       })),
     }))
     const activated = new Set<BoardPiece>()
-    const queue: BoardPiece[] = []
+    const queue: Array<{ piece: BoardPiece; triggeredBy?: BoardPiece }> = []
 
     groups.forEach((group) => {
       group.pieces.forEach((piece) => {
-        if (piece.special) queue.push(piece)
+        if (piece.special) queue.push({ piece })
       })
       if (group.pieces.length < 4 || group.pieces.some((piece) => piece.special)) return
       const special: SpecialState =
-        group.pieces.length === 4
-          ? {
-              type: 'arrow',
-              orientation: group.direction === 'y' ? 'vertical' : 'horizontal',
-            }
-          : { type: 'bomb' }
+        group.pieces.length === 4 ? { type: 'lightning' } : { type: 'bomb' }
       group.createdSpecial = { piece: group.startPiece, special }
     })
 
     while (queue.length > 0) {
-      const specialPiece = queue.shift()
-      if (!specialPiece || activated.has(specialPiece)) continue
+      const pending = queue.shift()
+      if (!pending) continue
+      const { piece: specialPiece, triggeredBy } = pending
+      if (activated.has(specialPiece)) continue
       activated.add(specialPiece)
       const owner = groups.find((group) => group.pieces.includes(specialPiece))
       if (!owner || !specialPiece.special) continue
+      const isDuplicateLightningFan =
+        specialPiece.special.type === 'lightning' &&
+        triggeredBy?.special?.type === 'lightning' &&
+        triggeredBy.elementType === specialPiece.elementType
+      if (isDuplicateLightningFan) continue
       const effectPieces = this.getEffectPieces(specialPiece, specialPiece.special)
       owner.effects ??= []
       owner.effects.push({
         source: specialPiece,
         type: specialPiece.special.type,
-        orientation:
-          specialPiece.special.type === 'arrow' ? specialPiece.special.orientation : undefined,
+        triggeredBy,
         pieces: effectPieces,
       })
       effectPieces.forEach((piece) => {
         if (!owner.pieces.includes(piece)) owner.pieces.push(piece)
-        if (piece.special && !activated.has(piece)) queue.push(piece)
+        if (piece.special && !activated.has(piece)) {
+          queue.push({ piece, triggeredBy: specialPiece })
+        }
       })
     }
 
@@ -64,24 +67,14 @@ export class SpecialEffectResolver {
   }
 
   private getEffectPieces(piece: BoardPiece, special: SpecialState): BoardPiece[] {
+    if (special.type === 'lightning') return this.getLightningPieces(piece)
     const position = this.grid.getPosition(piece)
-    if (!position) return []
-    return special.type === 'arrow'
-      ? this.getArrowPieces(position, special.orientation)
-      : this.getBombPieces(position)
+    return position ? this.getBombPieces(position) : []
   }
 
-  private getArrowPieces(
-    position: GridPosition,
-    orientation: SpecialState['orientation'],
-  ): BoardPiece[] {
-    if (!orientation) return []
+  private getLightningPieces(source: BoardPiece): BoardPiece[] {
     return this.grid.items
-      .filter(({ piece, position: candidate }) => {
-        const inSegment =
-          orientation === 'vertical' ? candidate.x === position.x : candidate.y === position.y
-        return piece.active && inSegment
-      })
+      .filter(({ piece }) => piece.active && piece.elementType === source.elementType)
       .map(({ piece }) => piece)
   }
 

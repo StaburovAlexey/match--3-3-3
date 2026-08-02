@@ -1,9 +1,17 @@
 import { gsap } from 'gsap'
 import type { AnimationResult } from '../../../core/flow/GamePresentation.ts'
-import type { BoardPiece, MatchGroup, MatchResolution } from '../../../core/model/Board.ts'
+import type {
+  BoardPiece,
+  MatchEffect,
+  MatchGroup,
+  MatchResolution,
+} from '../../../core/model/Board.ts'
 import type { CubeBoardView } from '../board/CubeBoardView.ts'
-import { ArrowLightningAnimator } from '../effects/ArrowLightningAnimator.ts'
 import { BombExplosionAnimator } from '../effects/BombExplosionAnimator.ts'
+import {
+  ColorLightningAnimator,
+  type LightningEffectTiming,
+} from '../effects/ColorLightningAnimator.ts'
 import { SpecialClearAnimator } from './SpecialClearAnimator.ts'
 import { SpecialIdleAnimator } from './SpecialIdleAnimator.ts'
 import { TimelineScope } from './TimelineScope.ts'
@@ -17,13 +25,13 @@ export class CubeMatchAnimator {
   private readonly shrinkDuration = 0.14
   private readonly staggerDuration = 0.11
   private readonly board: CubeBoardView
-  private readonly lightning: ArrowLightningAnimator
+  private readonly lightning: ColorLightningAnimator
   private readonly bombExplosion: BombExplosionAnimator
 
   constructor(
     board: CubeBoardView,
     specialClear: SpecialClearAnimator,
-    lightning: ArrowLightningAnimator,
+    lightning: ColorLightningAnimator,
     bombExplosion: BombExplosionAnimator,
   ) {
     this.board = board
@@ -162,32 +170,117 @@ export class CubeMatchAnimator {
     const groupCubes = pieces.map((piece) => this.board.getCube(piece))
     groupCubes.forEach((cube) => cubes.add(cube))
     const timeline = gsap.timeline()
-    const arrowEffects = group.effects?.filter((effect) => effect.type === 'arrow') ?? []
-    const lightning = this.lightning.createTimeline(arrowEffects)
-    const arrowSparkPieces = arrowEffects.flatMap((effect) => effect.pieces)
-    const bombEffects = group.effects?.filter((effect) => effect.type === 'bomb') ?? []
-    const bombActivationOffset = this.bombExplosion.getLastActivationOffset(bombEffects)
-    timeline.add(lightning, 0)
-    timeline.add(this.specialClear.createTimeline(groupCubes, bombActivationOffset), 0)
+    const effects = group.effects ?? []
+    const schedule = this.createSpecialSchedule(effects, pieces)
+    const bombEffects = effects.filter((effect) => effect.type === 'bomb')
+    timeline.add(this.lightning.createTimeline(schedule.lightning), 0)
+    timeline.add(
+      this.specialClear.createStaggeredTimeline(
+        pieces.map((piece) => ({
+          cube: this.board.getCube(piece),
+          start: schedule.clearStarts.get(piece.id) ?? 0,
+        })),
+      ),
+      0,
+    )
     if (bombEffects.length > 0) {
       timeline.call(
         () => {
-          this.bombExplosion.createSequence(bombEffects)
+          this.bombExplosion.createSequence(bombEffects, schedule.bombExplosions)
         },
         [],
-        this.specialClear.peakTime,
+        0,
       )
     }
-    if (arrowSparkPieces.length > 0) {
+    const sparksByTime = new Map<number, BoardPiece[]>()
+    pieces.forEach((piece) => {
+      const time = (schedule.clearStarts.get(piece.id) ?? 0) + this.specialClear.peakTime
+      const key = Math.round(time * 1000) / 1000
+      const atTime = sparksByTime.get(key) ?? []
+      atTime.push(piece)
+      sparksByTime.set(key, atTime)
+    })
+    sparksByTime.forEach((sparkPieces, time) => {
       timeline.call(
         () => {
-          this.bombExplosion.createClearSparkTimeline(arrowSparkPieces)
+          this.bombExplosion.createClearSparkTimeline(sparkPieces)
         },
         [],
-        this.specialClear.peakTime,
+        time,
       )
-    }
+    })
     return timeline
+  }
+
+  private createSpecialSchedule(
+    effects: readonly MatchEffect[],
+    pieces: readonly BoardPiece[],
+  ): {
+    lightning: LightningEffectTiming[]
+    clearStarts: Map<string, number>
+    bombExplosions: Map<string, number>
+  } {
+    const effectBySourceId = new Map(effects.map((effect) => [effect.source.id, effect]))
+    const activationBySourceId = new Map<string, number>()
+    const lightningHitByPieceId = new Map<string, number>()
+    const clearStarts = new Map<string, number>()
+    const bombExplosions = new Map<string, number>()
+    const lightning: LightningEffectTiming[] = []
+    const effectPieceIds = new Set(effects.flatMap((effect) => effect.pieces.map(({ id }) => id)))
+
+    pieces.forEach((piece) => {
+      if (!effectPieceIds.has(piece.id)) clearStarts.set(piece.id, 0)
+    })
+
+    effects.forEach((effect) => {
+      const parent = effect.triggeredBy ? effectBySourceId.get(effect.triggeredBy.id) : undefined
+      let activation = 0
+
+      if (parent?.type === 'lightning') {
+        activation = lightningHitByPieceId.get(effect.source.id) ?? 0
+      } else if (parent?.type === 'bomb') {
+        const parentActivation = activationBySourceId.get(parent.source.id) ?? 0
+        activation =
+          effect.type === 'bomb'
+            ? parentActivation + this.bombExplosion.chainDelay
+            : parentActivation + this.specialClear.peakTime
+      }
+
+      activationBySourceId.set(effect.source.id, activation)
+
+      const sourceClearStart =
+        parent?.type === 'bomb' && effect.type === 'lightning'
+          ? (activationBySourceId.get(parent.source.id) ?? 0)
+          : activation
+      this.setEarliest(clearStarts, effect.source.id, sourceClearStart)
+
+      if (effect.type === 'lightning') {
+        const timing = this.lightning.createEffectTiming(effect, activation)
+        lightning.push(timing)
+        timing.targets.forEach(({ piece, hitAt }) => {
+          this.setEarliest(lightningHitByPieceId, piece.id, hitAt)
+          this.setEarliest(clearStarts, piece.id, hitAt)
+        })
+        return
+      }
+
+      bombExplosions.set(effect.source.id, activation + this.specialClear.peakTime)
+      effect.pieces.forEach((piece) => {
+        const child = effectBySourceId.get(piece.id)
+        const start =
+          child?.triggeredBy === effect.source && child.type === 'bomb'
+            ? activation + this.bombExplosion.chainDelay
+            : activation
+        this.setEarliest(clearStarts, piece.id, start)
+      })
+    })
+
+    return { lightning, clearStarts, bombExplosions }
+  }
+
+  private setEarliest(target: Map<string, number>, id: string, value: number): void {
+    const current = target.get(id)
+    if (current === undefined || value < current) target.set(id, value)
   }
 
   private getActivatedSpecials(group: MatchGroup): BoardPiece[] {
@@ -196,13 +289,6 @@ export class CubeMatchAnimator {
 
   private startIdle(piece: BoardPiece): void {
     if (!piece.special) return
-    const cube = this.board.getCube(piece)
-    if (piece.special.type === 'arrow') {
-      if (piece.special.orientation) {
-        this.idle.startArrow(cube, piece.special.orientation)
-      }
-      return
-    }
-    this.idle.startBomb(cube)
+    this.idle.start(this.board.getCube(piece))
   }
 }

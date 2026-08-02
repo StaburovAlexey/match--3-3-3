@@ -47,7 +47,14 @@ export class BombExplosionAnimator {
     this.glowTexture = this.createGlowTexture()
   }
 
-  createSequence(effects: readonly MatchEffect[]): BombExplosionSequence {
+  get chainDelay(): number {
+    return this.config.chainDelay
+  }
+
+  createSequence(
+    effects: readonly MatchEffect[],
+    activationOffsets?: ReadonlyMap<string, number>,
+  ): BombExplosionSequence {
     const bombEffects = this.getUniqueBombEffects(effects)
     if (bombEffects.length === 0) {
       return {
@@ -68,9 +75,13 @@ export class BombExplosionAnimator {
       },
     })
 
+    const starts = bombEffects.map(
+      (effect, index) => activationOffsets?.get(effect.source.id) ?? index * this.config.chainDelay,
+    )
+
     bombEffects.forEach((effect, index) => {
       const visual = this.createVisual(effect)
-      const start = index * this.config.chainDelay
+      const start = starts[index]
       visuals.add(visual)
       this.addExplosion(timeline, visual, start)
     })
@@ -78,7 +89,7 @@ export class BombExplosionAnimator {
     this.activeTimelines.set(timeline, visuals)
     return {
       timeline,
-      lastActivationOffset: (bombEffects.length - 1) * this.config.chainDelay,
+      lastActivationOffset: Math.max(...starts),
     }
   }
 

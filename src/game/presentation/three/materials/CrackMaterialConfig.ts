@@ -110,27 +110,19 @@ export const elementCrackSettings: Record<ElementType, TransformCrack> = {
   },
 }
 
+const specialCrackSetting: TransformCrack = {
+  scale: 19.4,
+  width: 0.2,
+  strength: 0.58,
+  fillStrength: 1,
+  highlightStrength: 0.8,
+  highlightSpeed: 2,
+  highlightGlow: 3,
+  deformStrength: 1.08,
+  deformSpeed: 1,
+}
+
 export const specialCrackSettings: Record<SpecialType, TransformCrack> = {
-  bomb: {
-    scale: 19.4,
-    width: 0.2,
-    strength: 0.58,
-    fillStrength: 1,
-    highlightStrength: 0.8,
-    highlightSpeed: 2,
-    highlightGlow: 3,
-    deformStrength: 1.08,
-    deformSpeed: 1,
-  },
-  arrow: {
-    scale: 19.4,
-    width: 0.2,
-    strength: 0.58,
-    fillStrength: 1,
-    highlightStrength: 0.8,
-    highlightSpeed: 2,
-    highlightGlow: 3,
-    deformStrength: 1.08,
-    deformSpeed: 1,
-  },
+  bomb: { ...specialCrackSetting },
+  lightning: { ...specialCrackSetting },
 }

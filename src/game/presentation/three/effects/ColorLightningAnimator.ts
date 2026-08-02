@@ -1,8 +1,8 @@
 import { gsap } from 'gsap'
 import * as THREE from 'three'
-import type { MatchEffect } from '../../../core/model/Board.ts'
+import type { BoardPiece, MatchEffect } from '../../../core/model/Board.ts'
 import type { CubeBoardView } from '../board/CubeBoardView.ts'
-import { createArrowLightningConfig, type ArrowLightningConfig } from './ArrowLightningConfig.ts'
+import { createColorLightningConfig, type ColorLightningConfig } from './ColorLightningConfig.ts'
 
 interface LightningStrand {
   mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshBasicMaterial>
@@ -21,23 +21,68 @@ interface StrandStyle {
   opacity: number
 }
 
-export class ArrowLightningAnimator {
+export interface LightningTargetTiming {
+  piece: BoardPiece
+  pathStart: number
+  hitAt: number
+}
+
+export interface LightningEffectTiming {
+  effect: MatchEffect
+  start: number
+  targets: LightningTargetTiming[]
+}
+
+export class ColorLightningAnimator {
   private readonly activeTimelines = new Map<gsap.core.Timeline, Set<LightningPath>>()
   private readonly scene: THREE.Scene
   private readonly board: CubeBoardView
-  private readonly config: ArrowLightningConfig
+  private readonly config: ColorLightningConfig
 
   constructor(
     scene: THREE.Scene,
     board: CubeBoardView,
-    config: ArrowLightningConfig = createArrowLightningConfig(),
+    config: ColorLightningConfig = createColorLightningConfig(),
   ) {
     this.scene = scene
     this.board = board
     this.config = config
   }
 
-  createTimeline(effects: readonly MatchEffect[]): gsap.core.Timeline {
+  createEffectTiming(effect: MatchEffect, start: number): LightningEffectTiming {
+    const sourcePosition = this.board.getWorldPosition(effect.source)
+    const targets = Array.from(
+      new Map(
+        effect.pieces.filter((piece) => piece !== effect.source).map((piece) => [piece.id, piece]),
+      ).values(),
+    ).sort(
+      (first, second) =>
+        sourcePosition.distanceToSquared(this.board.getWorldPosition(first)) -
+        sourcePosition.distanceToSquared(this.board.getWorldPosition(second)),
+    )
+    const delay =
+      targets.length <= 1
+        ? 0
+        : Math.min(
+            this.config.pathDelay,
+            this.config.maxCascadeDuration / Math.max(1, targets.length - 1),
+          )
+
+    return {
+      effect,
+      start,
+      targets: targets.map((piece, index) => {
+        const pathStart = start + index * delay
+        return {
+          piece,
+          pathStart,
+          hitAt: pathStart + this.config.travelDuration,
+        }
+      }),
+    }
+  }
+
+  createTimeline(timings: readonly LightningEffectTiming[]): gsap.core.Timeline {
     const paths = new Set<LightningPath>()
     const timeline = gsap.timeline({
       onComplete: () => {
@@ -49,17 +94,13 @@ export class ArrowLightningAnimator {
         this.disposePaths(paths)
       },
     })
-    let pathIndex = 0
-
-    effects
-      .filter((effect) => effect.type === 'arrow' && effect.orientation)
-      .forEach((effect) => {
-        this.createFacePaths(effect).forEach((cubeCenters) => {
-          if (cubeCenters.length < 2) return
-
-          const path = this.createPath(cubeCenters)
+    timings
+      .filter(({ effect }) => effect.type === 'lightning')
+      .forEach(({ effect, targets }) => {
+        const source = this.board.getWorldPosition(effect.source)
+        targets.forEach(({ piece, pathStart }) => {
+          const path = this.createPath([source, this.board.getWorldPosition(piece)])
           const progress = { value: 0 }
-          const start = pathIndex * this.config.pathDelay
           paths.add(path)
 
           timeline.to(
@@ -75,7 +116,7 @@ export class ArrowLightningAnimator {
                 })
               },
             },
-            start,
+            pathStart,
           )
 
           path.strands.forEach(({ material, baseOpacity }) => {
@@ -89,7 +130,7 @@ export class ArrowLightningAnimator {
                   yoyo: true,
                   ease: 'none',
                 },
-                start + this.config.travelDuration,
+                pathStart + this.config.travelDuration,
               )
               .to(
                 material,
@@ -98,14 +139,12 @@ export class ArrowLightningAnimator {
                   duration: this.config.fadeDuration,
                   ease: 'power2.in',
                 },
-                start +
+                pathStart +
                   this.config.travelDuration +
                   this.config.flickerDuration *
                     (Math.max(0, Math.round(this.config.flickerCount)) + 1),
               )
           })
-
-          pathIndex += 1
         })
       })
 
@@ -119,49 +158,6 @@ export class ArrowLightningAnimator {
       this.disposePaths(paths)
     })
     this.activeTimelines.clear()
-  }
-
-  private createFacePaths(effect: MatchEffect): THREE.Vector3[][] {
-    const centers = effect.pieces.map((piece) => this.board.getWorldPosition(piece))
-    const orientation = effect.orientation
-    if (!orientation || centers.length === 0) return []
-
-    const xValues = centers.map(({ x }) => x)
-    const yValues = centers.map(({ y }) => y)
-    const zValues = centers.map(({ z }) => z)
-    const minX = Math.min(...xValues)
-    const maxX = Math.max(...xValues)
-    const minY = Math.min(...yValues)
-    const maxY = Math.max(...yValues)
-    const minZ = Math.min(...zValues)
-    const maxZ = Math.max(...zValues)
-
-    if (orientation === 'horizontal') {
-      return [
-        this.selectPath(centers, 'z', minZ, 'x'),
-        this.selectPath(centers, 'z', maxZ, 'x'),
-        this.selectPath(centers, 'x', minX, 'z'),
-        this.selectPath(centers, 'x', maxX, 'z'),
-      ]
-    }
-
-    return [
-      this.selectPath(centers, 'z', minZ, 'y'),
-      this.selectPath(centers, 'z', maxZ, 'y'),
-      this.selectPath(centers, 'y', minY, 'z'),
-      this.selectPath(centers, 'y', maxY, 'z'),
-    ]
-  }
-
-  private selectPath(
-    centers: readonly THREE.Vector3[],
-    fixedAxis: 'x' | 'y' | 'z',
-    fixedValue: number,
-    sortAxis: 'x' | 'y' | 'z',
-  ): THREE.Vector3[] {
-    return centers
-      .filter((center) => Math.abs(center[fixedAxis] - fixedValue) < 0.001)
-      .sort((first, second) => first[sortAxis] - second[sortAxis])
   }
 
   private createPath(cubeCenters: THREE.Vector3[]): LightningPath {

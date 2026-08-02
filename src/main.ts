@@ -9,6 +9,8 @@ await textureLoader.loadAll({
   earth: `${import.meta.env.BASE_URL}texture/earth128px.png`,
   dark: `${import.meta.env.BASE_URL}texture/dark128px.png`,
   light: `${import.meta.env.BASE_URL}texture/light128px.png`,
+  'special-lightning': `${import.meta.env.BASE_URL}texture/lightning.png`,
+  'special-bomb': `${import.meta.env.BASE_URL}texture/bomb.png`,
 })
 
 createApp(App).mount('#app')

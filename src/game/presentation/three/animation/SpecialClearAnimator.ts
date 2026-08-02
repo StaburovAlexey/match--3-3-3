@@ -2,6 +2,11 @@ import { gsap } from 'gsap'
 import type { Cube } from '../board/Cube.ts'
 import { CubeShakeAnimator } from './CubeShakeAnimator.ts'
 
+export interface SpecialClearTiming {
+  cube: Cube
+  start: number
+}
+
 export class SpecialClearAnimator {
   private readonly activeCubes = new Set<Cube>()
   private readonly shakeDuration = 0.05
@@ -40,6 +45,34 @@ export class SpecialClearAnimator {
       { x: 0, y: 0, z: 0, duration: this.shrinkDuration, ease: 'power2.in' },
       this.growDuration + Math.max(0, peakHoldDuration),
     )
+    return timeline
+  }
+
+  createStaggeredTimeline(timings: readonly SpecialClearTiming[]): gsap.core.Timeline {
+    timings.forEach(({ cube }) => this.activeCubes.add(cube))
+    const timeline = gsap.timeline()
+
+    timings.forEach(({ cube, start }) => {
+      timeline.call(() => this.shake.startLoop(cube, this.shakeDuration), [], start)
+      timeline.to(
+        cube.scale,
+        {
+          x: 1.2,
+          y: 1.2,
+          z: 1.2,
+          duration: this.growDuration,
+          ease: 'sine.inOut',
+        },
+        start,
+      )
+      timeline.call(() => this.shake.stop(cube, 0), [], start + this.growDuration)
+      timeline.to(
+        cube.scale,
+        { x: 0, y: 0, z: 0, duration: this.shrinkDuration, ease: 'power2.in' },
+        start + this.growDuration,
+      )
+    })
+
     return timeline
   }
 

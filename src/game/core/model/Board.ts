@@ -35,7 +35,7 @@ export interface MatchGroup {
 export interface MatchEffect {
   source: BoardPiece
   type: SpecialType
-  orientation?: SpecialState['orientation']
+  triggeredBy?: BoardPiece
   pieces: BoardPiece[]
 }
 

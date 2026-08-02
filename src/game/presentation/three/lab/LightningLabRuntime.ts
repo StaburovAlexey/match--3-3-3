@@ -4,18 +4,20 @@ import * as THREE from 'three'
 import { RandomElementSource } from '../../../core/board/RandomElementSource.ts'
 import { createCubeShellBoard } from '../../../core/board/createCubeShellBoard.ts'
 import type { BoardItem, MatchEffect } from '../../../core/model/Board.ts'
-import type { ArrowOrientation } from '../../../core/model/Element.ts'
+import { elementTypes, type ElementType } from '../../../core/model/Element.ts'
+import { CubeShakeAnimator } from '../animation/CubeShakeAnimator.ts'
+import { SpecialClearAnimator } from '../animation/SpecialClearAnimator.ts'
 import { CubeBoardView } from '../board/CubeBoardView.ts'
-import { ArrowLightningAnimator } from '../effects/ArrowLightningAnimator.ts'
+import { BombExplosionAnimator } from '../effects/BombExplosionAnimator.ts'
+import { ColorLightningAnimator } from '../effects/ColorLightningAnimator.ts'
 import {
-  createArrowLightningConfig,
-  type ArrowLightningConfig,
-} from '../effects/ArrowLightningConfig.ts'
+  createColorLightningConfig,
+  type ColorLightningConfig,
+} from '../effects/ColorLightningConfig.ts'
 import { ThreeScene } from '../scene/ThreeScene.ts'
 
 interface LightningLabSettings {
-  orientation: ArrowOrientation
-  layer: number
+  elementType: ElementType
   autoReplay: boolean
   replayDelay: number
   background: string
@@ -36,12 +38,14 @@ export class LightningLabRuntime {
   private readonly scene: ThreeScene
   private readonly items: BoardItem[]
   private readonly board: CubeBoardView
-  private readonly config = createArrowLightningConfig()
-  private readonly lightning: ArrowLightningAnimator
+  private readonly config = createColorLightningConfig()
+  private readonly shake = new CubeShakeAnimator()
+  private readonly specialClear = new SpecialClearAnimator(this.shake)
+  private readonly lightning: ColorLightningAnimator
+  private readonly sparks: BombExplosionAnimator
   private readonly gui: GUI
   private readonly settings: LightningLabSettings = {
-    orientation: 'horizontal',
-    layer: 1,
+    elementType: 'ice',
     autoReplay: true,
     replayDelay: 0.5,
     background: '#111827',
@@ -53,15 +57,20 @@ export class LightningLabRuntime {
   private readonly actions: LightningLabActions
   private replayCall: gsap.core.Tween | null = null
   private feedbackCall: gsap.core.Tween | null = null
+  private playbackTimeline: gsap.core.Timeline | null = null
   private disposed = false
 
   constructor(sceneContainer: HTMLElement, guiContainer: HTMLElement) {
     this.items = createCubeShellBoard(new RandomElementSource(() => 0))
+    this.items.forEach(({ piece }, index) => {
+      piece.elementType = elementTypes[index % elementTypes.length]
+    })
     this.scene = new ThreeScene(sceneContainer)
     this.board = new CubeBoardView(this.items)
     this.board.cubes.forEach((cube) => cube.scale.setScalar(this.settings.cubeScale))
     this.scene.scene.add(this.board.object)
-    this.lightning = new ArrowLightningAnimator(this.scene.scene, this.board, this.config)
+    this.lightning = new ColorLightningAnimator(this.scene.scene, this.board, this.config)
+    this.sparks = new BombExplosionAnimator(this.scene.scene, this.board)
     this.actions = {
       play: () => this.play(),
       randomize: () => this.play(),
@@ -85,7 +94,35 @@ export class LightningLabRuntime {
     if (this.disposed) return
     this.stopPlayback()
     const effect = this.createEffect()
-    const timeline = this.lightning.createTimeline([effect])
+    this.syncPreviewSpecial(effect)
+    this.board.cubes.forEach((cube) => {
+      cube.visible = true
+      cube.scale.setScalar(this.settings.cubeScale)
+    })
+    const timing = this.lightning.createEffectTiming(effect, 0)
+    const clearStarts = new Map<string, number>([[effect.source.id, 0]])
+    timing.targets.forEach(({ piece, hitAt }) => clearStarts.set(piece.id, hitAt))
+    const timeline = gsap.timeline()
+    timeline.add(this.lightning.createTimeline([timing]), 0)
+    timeline.add(
+      this.specialClear.createStaggeredTimeline(
+        effect.pieces.map((piece) => ({
+          cube: this.board.getCube(piece),
+          start: clearStarts.get(piece.id) ?? 0,
+        })),
+      ),
+      0,
+    )
+    effect.pieces.forEach((piece) => {
+      timeline.call(
+        () => {
+          this.sparks.createClearSparkTimeline([piece])
+        },
+        [],
+        (clearStarts.get(piece.id) ?? 0) + this.specialClear.peakTime,
+      )
+    })
+    this.playbackTimeline = timeline
 
     if (this.settings.autoReplay) {
       this.replayCall = gsap.delayedCall(timeline.totalDuration() + this.settings.replayDelay, () =>
@@ -99,6 +136,9 @@ export class LightningLabRuntime {
     this.disposed = true
     this.stopPlayback()
     this.gui.destroy()
+    this.specialClear.destroy()
+    this.shake.destroy()
+    this.sparks.destroy()
     this.board.dispose()
     this.scene.dispose()
   }
@@ -106,15 +146,14 @@ export class LightningLabRuntime {
   private createGui(): void {
     const playback = this.gui.addFolder('Воспроизведение')
     playback
-      .add(this.settings, 'orientation', {
-        Горизонтальная: 'horizontal',
-        Вертикальная: 'vertical',
+      .add(this.settings, 'elementType', {
+        Лёд: 'ice',
+        Огонь: 'fire',
+        Земля: 'earth',
+        Тьма: 'dark',
+        Свет: 'light',
       })
-      .name('Ориентация')
-      .onFinishChange(() => this.play())
-    playback
-      .add(this.settings, 'layer', 0, 3, 1)
-      .name('Слой')
+      .name('Цвет цели')
       .onFinishChange(() => this.play())
     playback
       .add(this.settings, 'autoReplay')
@@ -171,7 +210,8 @@ export class LightningLabRuntime {
     this.addNumber(appearance, 'renderOrderBase', 0, 100, 1, 'Порядок отрисовки')
 
     const timing = this.gui.addFolder('Тайминги')
-    this.addNumber(timing, 'pathDelay', 0, 1, 0.005, 'Задержка граней')
+    this.addNumber(timing, 'pathDelay', 0, 1, 0.005, 'Задержка целей')
+    this.addNumber(timing, 'maxCascadeDuration', 0, 2, 0.01, 'Окно каскада')
     this.addNumber(timing, 'travelDuration', 0.01, 3, 0.01, 'Проход молнии')
     this.addNumber(timing, 'flickerOpacityFactor', 0, 1, 0.01, 'Глубина мерцания')
     this.addNumber(timing, 'flickerDuration', 0.005, 1, 0.005, 'Шаг мерцания')
@@ -208,7 +248,7 @@ export class LightningLabRuntime {
 
   private addNumber(
     folder: GUI,
-    property: keyof ArrowLightningConfig,
+    property: keyof ColorLightningConfig,
     min: number,
     max: number,
     step: number,
@@ -217,26 +257,37 @@ export class LightningLabRuntime {
     folder.add(this.config, property, min, max, step).name(name)
   }
 
-  private addBoolean(folder: GUI, property: keyof ArrowLightningConfig, name: string): void {
+  private addBoolean(folder: GUI, property: keyof ColorLightningConfig, name: string): void {
     folder.add(this.config, property).name(name)
   }
 
-  private addColor(folder: GUI, property: keyof ArrowLightningConfig, name: string): void {
+  private addColor(folder: GUI, property: keyof ColorLightningConfig, name: string): void {
     folder.addColor(this.config, property).name(name)
   }
 
   private createEffect(): MatchEffect {
-    const fixedAxis = this.settings.orientation === 'vertical' ? 'x' : 'y'
-    const pieces = this.items
-      .filter(({ position }) => position[fixedAxis] === this.settings.layer)
-      .map(({ piece }) => piece)
+    const colorItems = this.items.filter(
+      ({ piece }) => piece.elementType === this.settings.elementType,
+    )
+    const sourceItem =
+      colorItems.find(({ position }) => position.x === 3 && position.y === 1 && position.z === 3) ??
+      colorItems[0]
+
+    if (!sourceItem) throw new Error('Lightning Lab color selection is empty')
 
     return {
-      source: pieces[0],
-      type: 'arrow',
-      orientation: this.settings.orientation,
-      pieces,
+      source: sourceItem.piece,
+      type: 'lightning',
+      pieces: colorItems.map(({ piece }) => piece),
     }
+  }
+
+  private syncPreviewSpecial(effect: MatchEffect): void {
+    this.items.forEach(({ piece }) => {
+      piece.special = null
+    })
+    effect.source.special = { type: 'lightning' }
+    this.board.syncPieces(this.items.map(({ piece }) => piece))
   }
 
   private stopPlayback(): void {
@@ -244,6 +295,10 @@ export class LightningLabRuntime {
     this.replayCall = null
     this.feedbackCall?.kill()
     this.feedbackCall = null
+    this.playbackTimeline?.kill()
+    this.playbackTimeline = null
+    this.specialClear.finish(this.board.cubes)
+    this.sparks.stop()
     this.lightning.destroy()
   }
 
@@ -259,10 +314,9 @@ export class LightningLabRuntime {
   }
 
   private reset(): void {
-    Object.assign(this.config, createArrowLightningConfig())
+    Object.assign(this.config, createColorLightningConfig())
     Object.assign(this.settings, {
-      orientation: 'horizontal',
-      layer: 1,
+      elementType: 'ice',
       autoReplay: true,
       replayDelay: 0.5,
       background: '#111827',
@@ -288,7 +342,7 @@ export class LightningLabRuntime {
         if (!this.disposed) this.gui.title('Lightning Lab')
       })
     } catch {
-      console.info('ArrowLightningConfig:', json)
+      console.info('ColorLightningConfig:', json)
       this.gui.title('Lightning Lab — JSON в консоли')
     }
   }

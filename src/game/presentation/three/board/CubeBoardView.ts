@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import type { BoardItem, BoardPiece, GridPosition } from '../../../core/model/Board.ts'
 import { CubeMaterialRegistry } from '../materials/CubeMaterialRegistry.ts'
 import { Cube, type CubeGeometryConfig } from './Cube.ts'
+import { CubeSpecialIconRenderer } from './CubeSpecialIconRenderer.ts'
 
 export class CubeBoardView {
   private readonly cubeGeometry: CubeGeometryConfig = {
@@ -13,6 +14,7 @@ export class CubeBoardView {
   private readonly materials = new CubeMaterialRegistry()
   private readonly group = new THREE.Group()
   private readonly cubesByPieceId = new Map<string, Cube>()
+  private readonly specialIcons: CubeSpecialIconRenderer
 
   constructor(items: readonly BoardItem[]) {
     items.forEach(({ piece, position }) => {
@@ -25,6 +27,7 @@ export class CubeBoardView {
     })
     const box = new THREE.Box3().setFromObject(this.group)
     this.group.position.sub(box.getCenter(new THREE.Vector3()))
+    this.specialIcons = new CubeSpecialIconRenderer(items, this.cubes, this.cubeGeometry.axis)
   }
 
   get object(): THREE.Group {
@@ -51,6 +54,7 @@ export class CubeBoardView {
       ? this.materials.getSpecial(piece.elementType, piece.special.type)
       : this.materials.getBase(piece.elementType)
     cube.visible = piece.active
+    this.specialIcons.syncPiece(piece)
   }
 
   syncPieces(pieces: readonly BoardPiece[]): void {
@@ -67,9 +71,11 @@ export class CubeBoardView {
 
   update(time: number): void {
     this.materials.update(time)
+    this.specialIcons.update()
   }
 
   dispose(): void {
+    this.specialIcons.dispose()
     this.cubes.forEach((cube) => cube.geometry.dispose())
     this.materials.dispose()
     this.group.removeFromParent()

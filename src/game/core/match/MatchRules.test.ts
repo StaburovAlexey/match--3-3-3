@@ -11,6 +11,7 @@ function createGrid(
     position: GridPosition
     type?: ElementType
     special?: SpecialState | null
+    active?: boolean
   }>,
 ): BoardGrid {
   const items: BoardItem[] = definitions.map((definition, index) => ({
@@ -18,7 +19,7 @@ function createGrid(
       id: `piece-${index}`,
       elementType: definition.type ?? 'ice',
       special: definition.special ?? null,
-      active: true,
+      active: definition.active ?? true,
     },
     position: definition.position,
   }))
@@ -121,50 +122,86 @@ describe('MatchValidator', () => {
 })
 
 describe('SpecialEffectResolver', () => {
-  it('создаёт горизонтальную стрелку для линии по X и вертикальную для линии по Y', () => {
-    const horizontalGrid = createGrid(
+  it('создаёт lightning за match из четырёх и bomb за match из пяти и более кубов', () => {
+    const lightningGrid = createGrid(
       Array.from({ length: 4 }, (_, x) => ({ position: { x, y: 0, z: 0 } })),
     )
-    const verticalGrid = createGrid(
-      Array.from({ length: 4 }, (_, y) => ({ position: { x: 0, y, z: 0 } })),
+    const bombGrid = createGrid(
+      Array.from({ length: 6 }, (_, x) => ({ position: { x, y: 0, z: 0 } })),
     )
-    const horizontal = groupFrom(
-      horizontalGrid,
+
+    const lightningMatch = groupFrom(
+      lightningGrid,
       Array.from({ length: 4 }, (_, x) => ({ x, y: 0, z: 0 })),
     )
-    const vertical = groupFrom(
-      verticalGrid,
-      Array.from({ length: 4 }, (_, y) => ({ x: 0, y, z: 0 })),
+    const bombMatch = groupFrom(
+      bombGrid,
+      Array.from({ length: 6 }, (_, x) => ({ x, y: 0, z: 0 })),
     )
-    vertical.direction = 'y'
 
     expect(
-      new SpecialEffectResolver(horizontalGrid).enrich([horizontal])[0].createdSpecial,
-    ).toMatchObject({ special: { type: 'arrow', orientation: 'horizontal' } })
-    expect(
-      new SpecialEffectResolver(verticalGrid).enrich([vertical])[0].createdSpecial,
-    ).toMatchObject({ special: { type: 'arrow', orientation: 'vertical' } })
+      new SpecialEffectResolver(lightningGrid).enrich([lightningMatch])[0].createdSpecial,
+    ).toMatchObject({ special: { type: 'lightning' } })
+    expect(new SpecialEffectResolver(bombGrid).enrich([bombMatch])[0].createdSpecial).toMatchObject(
+      { special: { type: 'bomb' } },
+    )
   })
 
-  it('горизонтальная стрелка уничтожает весь сегмент с одинаковым Y', () => {
+  it('lightning уничтожает все активные кубы своего цвета по всему полю', () => {
     const grid = createGrid([
-      { position: { x: 0, y: 1, z: 0 }, special: { type: 'arrow', orientation: 'horizontal' } },
-      { position: { x: 1, y: 1, z: 0 } },
-      { position: { x: 1, y: 1, z: 1 } },
-      { position: { x: 0, y: 2, z: 0 } },
+      { position: { x: 0, y: 0, z: 0 }, type: 'ice', special: { type: 'lightning' } },
+      { position: { x: 3, y: 2, z: 1 }, type: 'ice' },
+      { position: { x: 1, y: 1, z: 1 }, type: 'fire' },
+      { position: { x: 2, y: 2, z: 2 }, type: 'ice', active: false },
     ])
-    const arrow = requirePiece(grid, { x: 0, y: 1, z: 0 })
-    const match = groupFrom(grid, [
-      { x: 0, y: 1, z: 0 },
-      { x: 1, y: 1, z: 0 },
-      { x: 1, y: 1, z: 1 },
-    ])
+    const lightning = requirePiece(grid, { x: 0, y: 0, z: 0 })
+    const match = groupFrom(grid, [{ x: 0, y: 0, z: 0 }])
 
     const [resolved] = new SpecialEffectResolver(grid).enrich([match])
 
-    expect(resolved.pieces).toContain(arrow)
-    expect(resolved.pieces).toContain(requirePiece(grid, { x: 1, y: 1, z: 1 }))
-    expect(resolved.pieces).not.toContain(requirePiece(grid, { x: 0, y: 2, z: 0 }))
+    expect(resolved.pieces).toContain(lightning)
+    expect(resolved.pieces).toContain(requirePiece(grid, { x: 3, y: 2, z: 1 }))
+    expect(resolved.pieces).not.toContain(requirePiece(grid, { x: 1, y: 1, z: 1 }))
+    expect(resolved.pieces).not.toContain(requirePiece(grid, { x: 2, y: 2, z: 2 }))
+    expect(resolved.effects).toHaveLength(1)
+    expect(resolved.effects?.[0]).toMatchObject({ source: lightning, type: 'lightning' })
+  })
+
+  it('бомба, задев lightning, запускает очистку цвета lightning', () => {
+    const grid = createGrid([
+      { position: { x: 0, y: 0, z: 0 }, type: 'fire', special: { type: 'bomb' } },
+      { position: { x: 1, y: 0, z: 0 }, type: 'ice', special: { type: 'lightning' } },
+      { position: { x: 4, y: 3, z: 2 }, type: 'ice' },
+      { position: { x: 4, y: 3, z: 3 }, type: 'earth' },
+    ])
+    const bomb = requirePiece(grid, { x: 0, y: 0, z: 0 })
+
+    const [resolved] = new SpecialEffectResolver(grid).enrich([
+      groupFrom(grid, [{ x: 0, y: 0, z: 0 }]),
+    ])
+
+    expect(resolved.pieces).toContain(requirePiece(grid, { x: 4, y: 3, z: 2 }))
+    expect(resolved.pieces).not.toContain(requirePiece(grid, { x: 4, y: 3, z: 3 }))
+    expect(resolved.effects).toHaveLength(2)
+    expect(resolved.effects?.[1]).toMatchObject({
+      type: 'lightning',
+      triggeredBy: bomb,
+    })
+  })
+
+  it('не запускает повторный веер у lightning того же цвета', () => {
+    const grid = createGrid([
+      { position: { x: 0, y: 0, z: 0 }, type: 'dark', special: { type: 'lightning' } },
+      { position: { x: 2, y: 2, z: 2 }, type: 'dark', special: { type: 'lightning' } },
+      { position: { x: 3, y: 3, z: 3 }, type: 'dark' },
+    ])
+
+    const [resolved] = new SpecialEffectResolver(grid).enrich([
+      groupFrom(grid, [{ x: 0, y: 0, z: 0 }]),
+    ])
+
+    expect(resolved.pieces).toEqual(expect.arrayContaining(grid.allPieces))
+    expect(resolved.effects?.filter((effect) => effect.type === 'lightning')).toHaveLength(1)
   })
 
   it('бомба уничтожает кубы в радиусе двух ячеек по всем осям', () => {

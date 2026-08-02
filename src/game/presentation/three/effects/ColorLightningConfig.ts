@@ -1,4 +1,4 @@
-export interface ArrowLightningConfig {
+export interface ColorLightningConfig {
   strandCount: number
   coreColor: string
   middleColor: string
@@ -21,6 +21,7 @@ export interface ArrowLightningConfig {
   tubularSegmentsPerPoint: number
   radialSegments: number
   pathDelay: number
+  maxCascadeDuration: number
   travelDuration: number
   flickerOpacityFactor: number
   flickerDuration: number
@@ -34,32 +35,33 @@ export interface ArrowLightningConfig {
   renderOrderBase: number
 }
 
-export function createArrowLightningConfig(): ArrowLightningConfig {
+export function createColorLightningConfig(): ColorLightningConfig {
   return {
-    strandCount: 4,
+    strandCount: 2,
     coreColor: '#ffcccc',
     middleColor: '#39c8ff',
     edgeColor: '#2c60a5',
     coreRadius: 0.0025,
-    edgeRadius: 0.0065,
+    edgeRadius: 0.004,
     coreOpacity: 1,
     edgeOpacity: 0.7,
     sharedAnchorRadiusMin: 0.005,
     sharedAnchorRadiusMax: 0.004,
     strandAnchorRadiusMin: 0.038,
     strandAnchorRadiusMax: 0.024,
-    strandAnchorAngleRandomness: 6.283185307179586,
-    subdivisions: 3,
-    expansionBase: 0.05,
-    expansionAmount: 0,
+    strandAnchorAngleRandomness: 3.78,
+    subdivisions: 6,
+    expansionBase: 0.082,
+    expansionAmount: 0.005,
     expansionAngleRandomness: 6.283185307179586,
-    jitter: 0.096,
-    minTubularSegments: 9,
-    tubularSegmentsPerPoint: 20,
-    radialSegments: 16,
-    pathDelay: 0.04,
-    travelDuration: 0.46,
-    flickerOpacityFactor: 0.25,
+    jitter: 0,
+    minTubularSegments: 1,
+    tubularSegmentsPerPoint: 1,
+    radialSegments: 3,
+    pathDelay: 0.155,
+    maxCascadeDuration: 0.11,
+    travelDuration: 0.79,
+    flickerOpacityFactor: 0.08,
     flickerDuration: 0.035,
     flickerCount: 3,
     fadeDuration: 0.13,
@@ -67,7 +69,7 @@ export function createArrowLightningConfig(): ArrowLightningConfig {
     depthWrite: false,
     additiveBlending: true,
     doubleSided: true,
-    toneMapped: false,
-    renderOrderBase: 30,
+    toneMapped: true,
+    renderOrderBase: 13,
   }
 }
