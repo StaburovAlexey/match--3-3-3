@@ -204,9 +204,12 @@ describe('SpecialEffectResolver', () => {
     expect(resolved.effects?.filter((effect) => effect.type === 'lightning')).toHaveLength(1)
   })
 
-  it('бомба уничтожает кубы в радиусе двух ячеек по всем осям', () => {
+  it('бомба уничтожает кубы в манхэттенском радиусе двух ячеек', () => {
     const grid = createGrid([
       { position: { x: 0, y: 0, z: 0 }, special: { type: 'bomb' } },
+      { position: { x: 2, y: 0, z: 0 } },
+      { position: { x: 1, y: 1, z: 0 } },
+      { position: { x: 1, y: 1, z: 1 } },
       { position: { x: 2, y: 2, z: 2 } },
       { position: { x: 3, y: 0, z: 0 } },
     ])
@@ -214,7 +217,10 @@ describe('SpecialEffectResolver', () => {
 
     const [resolved] = new SpecialEffectResolver(grid).enrich([match])
 
-    expect(resolved.pieces).toContain(requirePiece(grid, { x: 2, y: 2, z: 2 }))
+    expect(resolved.pieces).toContain(requirePiece(grid, { x: 2, y: 0, z: 0 }))
+    expect(resolved.pieces).toContain(requirePiece(grid, { x: 1, y: 1, z: 0 }))
+    expect(resolved.pieces).not.toContain(requirePiece(grid, { x: 1, y: 1, z: 1 }))
+    expect(resolved.pieces).not.toContain(requirePiece(grid, { x: 2, y: 2, z: 2 }))
     expect(resolved.pieces).not.toContain(requirePiece(grid, { x: 3, y: 0, z: 0 }))
   })
 })

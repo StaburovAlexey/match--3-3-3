@@ -1,7 +1,7 @@
 import type { BoardPiece, GridPosition, MatchGroup } from '../model/Board.ts'
 import type { SpecialState } from '../model/Element.ts'
 import { BoardGrid } from '../board/BoardGrid.ts'
-import { isWithinRadius } from '../board/GridPosition.ts'
+import { manhattanDistance } from '../board/GridPosition.ts'
 
 export class SpecialEffectResolver {
   private readonly grid: BoardGrid
@@ -82,7 +82,7 @@ export class SpecialEffectResolver {
     return this.grid.items
       .filter(
         ({ piece, position: candidate }) =>
-          piece.active && isWithinRadius(position, candidate, this.bombRadius),
+          piece.active && manhattanDistance(position, candidate) <= this.bombRadius,
       )
       .map(({ piece }) => piece)
   }
