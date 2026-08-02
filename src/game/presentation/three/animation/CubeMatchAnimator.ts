@@ -3,6 +3,7 @@ import type { AnimationResult } from '../../../core/flow/GamePresentation.ts'
 import type { BoardPiece, MatchGroup, MatchResolution } from '../../../core/model/Board.ts'
 import type { CubeBoardView } from '../board/CubeBoardView.ts'
 import { ArrowLightningAnimator } from '../effects/ArrowLightningAnimator.ts'
+import { BombExplosionAnimator } from '../effects/BombExplosionAnimator.ts'
 import { SpecialClearAnimator } from './SpecialClearAnimator.ts'
 import { SpecialIdleAnimator } from './SpecialIdleAnimator.ts'
 import { TimelineScope } from './TimelineScope.ts'
@@ -17,15 +18,18 @@ export class CubeMatchAnimator {
   private readonly staggerDuration = 0.11
   private readonly board: CubeBoardView
   private readonly lightning: ArrowLightningAnimator
+  private readonly bombExplosion: BombExplosionAnimator
 
   constructor(
     board: CubeBoardView,
     specialClear: SpecialClearAnimator,
     lightning: ArrowLightningAnimator,
+    bombExplosion: BombExplosionAnimator,
   ) {
     this.board = board
     this.specialClear = specialClear
     this.lightning = lightning
+    this.bombExplosion = bombExplosion
   }
 
   play(resolution: MatchResolution): Promise<AnimationResult> {
@@ -79,6 +83,7 @@ export class CubeMatchAnimator {
     this.idle.stopAll()
     this.specialClear.destroy()
     this.lightning.destroy()
+    this.bombExplosion.destroy()
   }
 
   private createSequentialTimeline(
@@ -157,11 +162,31 @@ export class CubeMatchAnimator {
     const groupCubes = pieces.map((piece) => this.board.getCube(piece))
     groupCubes.forEach((cube) => cubes.add(cube))
     const timeline = gsap.timeline()
-    const lightning = this.lightning.createTimeline(
-      group.effects?.filter((effect) => effect.type === 'arrow') ?? [],
-    )
+    const arrowEffects = group.effects?.filter((effect) => effect.type === 'arrow') ?? []
+    const lightning = this.lightning.createTimeline(arrowEffects)
+    const arrowSparkPieces = arrowEffects.flatMap((effect) => effect.pieces)
+    const bombEffects = group.effects?.filter((effect) => effect.type === 'bomb') ?? []
+    const bombActivationOffset = this.bombExplosion.getLastActivationOffset(bombEffects)
     timeline.add(lightning, 0)
-    timeline.add(this.specialClear.createTimeline(groupCubes), 0)
+    timeline.add(this.specialClear.createTimeline(groupCubes, bombActivationOffset), 0)
+    if (bombEffects.length > 0) {
+      timeline.call(
+        () => {
+          this.bombExplosion.createSequence(bombEffects)
+        },
+        [],
+        this.specialClear.peakTime,
+      )
+    }
+    if (arrowSparkPieces.length > 0) {
+      timeline.call(
+        () => {
+          this.bombExplosion.createClearSparkTimeline(arrowSparkPieces)
+        },
+        [],
+        this.specialClear.peakTime,
+      )
+    }
     return timeline
   }
 

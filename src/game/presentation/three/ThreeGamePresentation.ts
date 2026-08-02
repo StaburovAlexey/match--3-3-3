@@ -11,6 +11,7 @@ import { CubeSwapAnimator } from './animation/CubeSwapAnimator.ts'
 import { SpecialClearAnimator } from './animation/SpecialClearAnimator.ts'
 import type { CubeBoardView } from './board/CubeBoardView.ts'
 import { ArrowLightningAnimator } from './effects/ArrowLightningAnimator.ts'
+import { BombExplosionAnimator } from './effects/BombExplosionAnimator.ts'
 import type { CubeStarEmitter } from './effects/CubeStarEmitter.ts'
 
 export class ThreeGamePresentation implements GamePresentation {
@@ -30,6 +31,7 @@ export class ThreeGamePresentation implements GamePresentation {
       board,
       new SpecialClearAnimator(this.shake),
       new ArrowLightningAnimator(scene, board),
+      new BombExplosionAnimator(scene, board),
     )
     this.refillAnimator = new CubeRefillAnimator(board)
   }

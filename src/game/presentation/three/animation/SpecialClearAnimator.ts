@@ -13,7 +13,11 @@ export class SpecialClearAnimator {
     this.shake = shake
   }
 
-  createTimeline(cubes: readonly Cube[]): gsap.core.Timeline {
+  get peakTime(): number {
+    return this.growDuration
+  }
+
+  createTimeline(cubes: readonly Cube[], peakHoldDuration = 0): gsap.core.Timeline {
     cubes.forEach((cube) => this.activeCubes.add(cube))
     const timeline = gsap.timeline()
     timeline.call(() => {
@@ -34,7 +38,7 @@ export class SpecialClearAnimator {
     timeline.to(
       cubes.map((cube) => cube.scale),
       { x: 0, y: 0, z: 0, duration: this.shrinkDuration, ease: 'power2.in' },
-      this.growDuration,
+      this.growDuration + Math.max(0, peakHoldDuration),
     )
     return timeline
   }
