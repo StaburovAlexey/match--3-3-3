@@ -2,6 +2,7 @@ import { gsap } from 'gsap'
 import type { AnimationResult } from '../../../core/flow/GamePresentation.ts'
 import type { BoardPiece, MatchGroup, MatchResolution } from '../../../core/model/Board.ts'
 import type { CubeBoardView } from '../board/CubeBoardView.ts'
+import { ArrowLightningAnimator } from '../effects/ArrowLightningAnimator.ts'
 import { SpecialClearAnimator } from './SpecialClearAnimator.ts'
 import { SpecialIdleAnimator } from './SpecialIdleAnimator.ts'
 import { TimelineScope } from './TimelineScope.ts'
@@ -15,10 +16,16 @@ export class CubeMatchAnimator {
   private readonly shrinkDuration = 0.14
   private readonly staggerDuration = 0.11
   private readonly board: CubeBoardView
+  private readonly lightning: ArrowLightningAnimator
 
-  constructor(board: CubeBoardView, specialClear: SpecialClearAnimator) {
+  constructor(
+    board: CubeBoardView,
+    specialClear: SpecialClearAnimator,
+    lightning: ArrowLightningAnimator,
+  ) {
     this.board = board
     this.specialClear = specialClear
+    this.lightning = lightning
   }
 
   play(resolution: MatchResolution): Promise<AnimationResult> {
@@ -44,7 +51,7 @@ export class CubeMatchAnimator {
       const activatedSpecials = this.getActivatedSpecials(group)
       const groupTimeline =
         activatedSpecials.length > 0
-          ? this.createSpecialTimeline(groupPieces, specialGroupCubes)
+          ? this.createSpecialTimeline(group, groupPieces, specialGroupCubes)
           : this.createSequentialTimeline(group, groupPieces)
       timeline.add(groupTimeline, 0)
     })
@@ -71,6 +78,7 @@ export class CubeMatchAnimator {
     this.scope.dispose()
     this.idle.stopAll()
     this.specialClear.destroy()
+    this.lightning.destroy()
   }
 
   private createSequentialTimeline(
@@ -142,12 +150,19 @@ export class CubeMatchAnimator {
   }
 
   private createSpecialTimeline(
+    group: MatchGroup,
     pieces: readonly BoardPiece[],
     cubes: Set<ReturnType<CubeBoardView['getCube']>>,
   ): gsap.core.Timeline {
     const groupCubes = pieces.map((piece) => this.board.getCube(piece))
     groupCubes.forEach((cube) => cubes.add(cube))
-    return this.specialClear.createTimeline(groupCubes)
+    const timeline = gsap.timeline()
+    const lightning = this.lightning.createTimeline(
+      group.effects?.filter((effect) => effect.type === 'arrow') ?? [],
+    )
+    timeline.add(lightning, 0)
+    timeline.add(this.specialClear.createTimeline(groupCubes), 0)
+    return timeline
   }
 
   private getActivatedSpecials(group: MatchGroup): BoardPiece[] {

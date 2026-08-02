@@ -1,0 +1,73 @@
+export interface ArrowLightningConfig {
+  strandCount: number
+  coreColor: string
+  middleColor: string
+  edgeColor: string
+  coreRadius: number
+  edgeRadius: number
+  coreOpacity: number
+  edgeOpacity: number
+  sharedAnchorRadiusMin: number
+  sharedAnchorRadiusMax: number
+  strandAnchorRadiusMin: number
+  strandAnchorRadiusMax: number
+  strandAnchorAngleRandomness: number
+  subdivisions: number
+  expansionBase: number
+  expansionAmount: number
+  expansionAngleRandomness: number
+  jitter: number
+  minTubularSegments: number
+  tubularSegmentsPerPoint: number
+  radialSegments: number
+  pathDelay: number
+  travelDuration: number
+  flickerOpacityFactor: number
+  flickerDuration: number
+  flickerCount: number
+  fadeDuration: number
+  depthTest: boolean
+  depthWrite: boolean
+  additiveBlending: boolean
+  doubleSided: boolean
+  toneMapped: boolean
+  renderOrderBase: number
+}
+
+export function createArrowLightningConfig(): ArrowLightningConfig {
+  return {
+    strandCount: 4,
+    coreColor: '#ffcccc',
+    middleColor: '#39c8ff',
+    edgeColor: '#2c60a5',
+    coreRadius: 0.0025,
+    edgeRadius: 0.0065,
+    coreOpacity: 1,
+    edgeOpacity: 0.7,
+    sharedAnchorRadiusMin: 0.005,
+    sharedAnchorRadiusMax: 0.004,
+    strandAnchorRadiusMin: 0.038,
+    strandAnchorRadiusMax: 0.024,
+    strandAnchorAngleRandomness: 6.283185307179586,
+    subdivisions: 3,
+    expansionBase: 0.05,
+    expansionAmount: 0,
+    expansionAngleRandomness: 6.283185307179586,
+    jitter: 0.096,
+    minTubularSegments: 9,
+    tubularSegmentsPerPoint: 20,
+    radialSegments: 16,
+    pathDelay: 0.04,
+    travelDuration: 0.46,
+    flickerOpacityFactor: 0.25,
+    flickerDuration: 0.035,
+    flickerCount: 3,
+    fadeDuration: 0.13,
+    depthTest: false,
+    depthWrite: false,
+    additiveBlending: true,
+    doubleSided: true,
+    toneMapped: false,
+    renderOrderBase: 30,
+  }
+}

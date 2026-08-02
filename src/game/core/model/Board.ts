@@ -1,4 +1,4 @@
-import type { ElementType, SpecialState } from './Element.ts'
+import type { ElementType, SpecialState, SpecialType } from './Element.ts'
 
 export interface GridPosition {
   x: number
@@ -25,10 +25,18 @@ export interface MatchGroup {
   direction: MatchDirection
   startPiece: BoardPiece
   pieces: BoardPiece[]
+  effects?: MatchEffect[]
   createdSpecial?: {
     piece: BoardPiece
     special: SpecialState
   }
+}
+
+export interface MatchEffect {
+  source: BoardPiece
+  type: SpecialType
+  orientation?: SpecialState['orientation']
+  pieces: BoardPiece[]
 }
 
 export interface MatchResolution {

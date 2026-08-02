@@ -13,7 +13,14 @@ export class SpecialEffectResolver {
   }
 
   enrich(matches: readonly MatchGroup[]): MatchGroup[] {
-    const groups = matches.map((group) => ({ ...group, pieces: [...group.pieces] }))
+    const groups = matches.map((group) => ({
+      ...group,
+      pieces: [...group.pieces],
+      effects: group.effects?.map((effect) => ({
+        ...effect,
+        pieces: [...effect.pieces],
+      })),
+    }))
     const activated = new Set<BoardPiece>()
     const queue: BoardPiece[] = []
 
@@ -38,7 +45,16 @@ export class SpecialEffectResolver {
       activated.add(specialPiece)
       const owner = groups.find((group) => group.pieces.includes(specialPiece))
       if (!owner || !specialPiece.special) continue
-      this.getEffectPieces(specialPiece, specialPiece.special).forEach((piece) => {
+      const effectPieces = this.getEffectPieces(specialPiece, specialPiece.special)
+      owner.effects ??= []
+      owner.effects.push({
+        source: specialPiece,
+        type: specialPiece.special.type,
+        orientation:
+          specialPiece.special.type === 'arrow' ? specialPiece.special.orientation : undefined,
+        pieces: effectPieces,
+      })
+      effectPieces.forEach((piece) => {
         if (!owner.pieces.includes(piece)) owner.pieces.push(piece)
         if (piece.special && !activated.has(piece)) queue.push(piece)
       })

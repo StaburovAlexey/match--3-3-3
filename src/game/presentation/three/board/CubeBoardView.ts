@@ -41,6 +41,10 @@ export class CubeBoardView {
     return cube
   }
 
+  getWorldPosition(piece: BoardPiece): THREE.Vector3 {
+    return this.getCube(piece).getWorldPosition(new THREE.Vector3())
+  }
+
   syncPiece(piece: BoardPiece): void {
     const cube = this.getCube(piece)
     cube.material = piece.special

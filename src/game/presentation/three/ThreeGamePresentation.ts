@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import type { RefillPlan } from '../../core/board/BoardRefillPlanner.ts'
 import type { AnimationResult, GamePresentation } from '../../core/flow/GamePresentation.ts'
 import type { BoardPiece, MatchResolution } from '../../core/model/Board.ts'
@@ -9,6 +10,7 @@ import { CubeSpawnAnimator } from './animation/CubeSpawnAnimator.ts'
 import { CubeSwapAnimator } from './animation/CubeSwapAnimator.ts'
 import { SpecialClearAnimator } from './animation/SpecialClearAnimator.ts'
 import type { CubeBoardView } from './board/CubeBoardView.ts'
+import { ArrowLightningAnimator } from './effects/ArrowLightningAnimator.ts'
 import type { CubeStarEmitter } from './effects/CubeStarEmitter.ts'
 
 export class ThreeGamePresentation implements GamePresentation {
@@ -21,10 +23,14 @@ export class ThreeGamePresentation implements GamePresentation {
   private readonly board: CubeBoardView
   private readonly stars: CubeStarEmitter
 
-  constructor(board: CubeBoardView, stars: CubeStarEmitter) {
+  constructor(board: CubeBoardView, stars: CubeStarEmitter, scene: THREE.Scene) {
     this.board = board
     this.stars = stars
-    this.matchAnimator = new CubeMatchAnimator(board, new SpecialClearAnimator(this.shake))
+    this.matchAnimator = new CubeMatchAnimator(
+      board,
+      new SpecialClearAnimator(this.shake),
+      new ArrowLightningAnimator(scene, board),
+    )
     this.refillAnimator = new CubeRefillAnimator(board)
   }
 
