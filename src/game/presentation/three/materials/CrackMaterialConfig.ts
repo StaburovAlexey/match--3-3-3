@@ -13,10 +13,7 @@ export interface TransformCrack {
   strength: number
   fillStrength: number
   highlightStrength: number
-  highlightSpeed: number
   highlightGlow: number
-  deformStrength: number
-  deformSpeed: number
 }
 
 export const crackPalettes: Record<ElementType, CrackPalette> = {
@@ -59,10 +56,7 @@ export const elementCrackSettings: Record<ElementType, TransformCrack> = {
     strength: 0.58,
     fillStrength: 1,
     highlightStrength: 0.8,
-    highlightSpeed: 2,
     highlightGlow: 2.8,
-    deformStrength: 0.08,
-    deformSpeed: 0.8,
   },
   fire: {
     scale: 9.4,
@@ -70,10 +64,7 @@ export const elementCrackSettings: Record<ElementType, TransformCrack> = {
     strength: 0.84,
     fillStrength: 1.5,
     highlightStrength: 0.76,
-    highlightSpeed: 2,
     highlightGlow: 4.2,
-    deformStrength: 0.06,
-    deformSpeed: 1.5,
   },
   earth: {
     scale: 9.4,
@@ -81,10 +72,7 @@ export const elementCrackSettings: Record<ElementType, TransformCrack> = {
     strength: 0.58,
     fillStrength: 1,
     highlightStrength: 1,
-    highlightSpeed: 2,
     highlightGlow: 5,
-    deformStrength: 0.04,
-    deformSpeed: 1.5,
   },
   dark: {
     scale: 9.4,
@@ -92,10 +80,7 @@ export const elementCrackSettings: Record<ElementType, TransformCrack> = {
     strength: 0.58,
     fillStrength: 1,
     highlightStrength: 0.8,
-    highlightSpeed: 2,
     highlightGlow: 2.9,
-    deformStrength: 0.1,
-    deformSpeed: 0.7,
   },
   light: {
     scale: 9.4,
@@ -103,10 +88,7 @@ export const elementCrackSettings: Record<ElementType, TransformCrack> = {
     strength: 0.58,
     fillStrength: 1,
     highlightStrength: 0.8,
-    highlightSpeed: 2,
     highlightGlow: 3,
-    deformStrength: 0.07,
-    deformSpeed: 1,
   },
 }
 
@@ -116,10 +98,7 @@ const specialCrackSetting: TransformCrack = {
   strength: 0.58,
   fillStrength: 1,
   highlightStrength: 0.8,
-  highlightSpeed: 2,
   highlightGlow: 3,
-  deformStrength: 1.08,
-  deformSpeed: 1,
 }
 
 export const specialCrackSettings: Record<SpecialType, TransformCrack> = {

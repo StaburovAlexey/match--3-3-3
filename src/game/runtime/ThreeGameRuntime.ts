@@ -14,6 +14,7 @@ import { ThreeGamePresentation } from '../presentation/three/ThreeGamePresentati
 import { CubeBoardView } from '../presentation/three/board/CubeBoardView.ts'
 import { CubeStarEmitter } from '../presentation/three/effects/CubeStarEmitter.ts'
 import { CubeRaycaster } from '../presentation/three/input/CubeRaycaster.ts'
+import { resolveCrackRenderMode } from '../presentation/three/materials/CrackRenderMode.ts'
 import { BiomeBackground } from '../presentation/three/biome/BiomeBackground.ts'
 import { ThreeScene } from '../presentation/three/scene/ThreeScene.ts'
 
@@ -36,7 +37,7 @@ export class ThreeGameRuntime {
     this.scene = new ThreeScene(container)
     this.biomeType = new RandomBiomeSource().next()
     this.biomeBackground = new BiomeBackground(this.scene.scene, this.scene.camera, this.biomeType)
-    this.board = new CubeBoardView(grid.items)
+    this.board = new CubeBoardView(grid.items, resolveCrackRenderMode(window.location.search))
     this.scene.scene.add(this.board.object)
     this.stars = new CubeStarEmitter(this.scene.scene)
     this.presentation = new ThreeGamePresentation(

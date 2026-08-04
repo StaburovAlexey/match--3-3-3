@@ -13,11 +13,8 @@ export interface CrackUniforms {
   uCrackStrength: THREE.IUniform<number>
   uCrackFillStrength: THREE.IUniform<number>
   uCrackHighlightStrength: THREE.IUniform<number>
-  uCrackTime: THREE.IUniform<number>
-  uCrackHighlightSpeed: THREE.IUniform<number>
+  uCrackPulse: THREE.IUniform<number>
   uCrackHighlightGlow: THREE.IUniform<number>
-  uCrackDeformStrength: THREE.IUniform<number>
-  uCrackDeformSpeed: THREE.IUniform<number>
   uCrackColor: THREE.IUniform<THREE.Color>
   uCrackFillColor: THREE.IUniform<THREE.Color>
   uCrackHighlightColor: THREE.IUniform<THREE.Color>
@@ -33,11 +30,8 @@ export function applyProceduralCracks(
     uCrackStrength: { value: settings.strength },
     uCrackFillStrength: { value: settings.fillStrength },
     uCrackHighlightStrength: { value: settings.highlightStrength },
-    uCrackTime: { value: 0 },
-    uCrackHighlightSpeed: { value: settings.highlightSpeed },
+    uCrackPulse: { value: 0.675 },
     uCrackHighlightGlow: { value: settings.highlightGlow },
-    uCrackDeformStrength: { value: settings.deformStrength },
-    uCrackDeformSpeed: { value: settings.deformSpeed },
     uCrackColor: { value: settings.color.clone() },
     uCrackFillColor: { value: settings.fillColor.clone() },
     uCrackHighlightColor: { value: settings.highlightColor.clone() },
@@ -52,11 +46,8 @@ export function applyProceduralCracks(
       uniform float uCrackStrength;
       uniform float uCrackFillStrength;
       uniform float uCrackHighlightStrength;
-      uniform float uCrackTime;
-      uniform float uCrackHighlightSpeed;
+      uniform float uCrackPulse;
       uniform float uCrackHighlightGlow;
-      uniform float uCrackDeformStrength;
-      uniform float uCrackDeformSpeed;
       uniform vec3 uCrackColor;
       uniform vec3 uCrackFillColor;
       uniform vec3 uCrackHighlightColor;
@@ -65,24 +56,24 @@ export function applyProceduralCracks(
       varying vec3 vCrackLocalNormal;
 
       vec2 crackHash(vec2 p) {
-        p = vec2(
-          dot(p, vec2(127.1, 311.7)),
-          dot(p, vec2(269.5, 183.3))
-        );
-        return fract(sin(p) * 43758.5453);
+        vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+        p3 += dot(p3, p3.yzx + 33.33);
+        return fract((p3.xx + p3.yz) * p3.zy);
       }
 
-      vec2 animatedCrackPoint(vec2 cell) {
-        vec2 point = crackHash(cell);
-        vec2 direction = crackHash(cell + vec2(17.3, 41.7)) * 2.0 - 1.0;
-        float phase = crackHash(cell + vec2(91.2, 13.8)).x * 6.2831853;
-        float movement = sin(uCrackTime * uCrackDeformSpeed + phase);
+      vec2 crackProjection(vec3 position, vec3 normal) {
+        vec3 axis = abs(normalize(normal));
 
-        point += direction * movement * uCrackDeformStrength;
-        return clamp(point, vec2(0.06), vec2(0.94));
+        if (axis.x >= axis.y && axis.x >= axis.z) {
+          return position.yz;
+        }
+        if (axis.y >= axis.z) {
+          return position.xz;
+        }
+        return position.xy;
       }
 
-      float crackVoronoi(vec2 uv, float width) {
+      float crackVoronoiEdge(vec2 uv) {
         vec2 cell = floor(uv);
         vec2 local = fract(uv);
         float nearest = 10.0;
@@ -91,8 +82,9 @@ export function applyProceduralCracks(
         for (int y = -1; y <= 1; y++) {
           for (int x = -1; x <= 1; x++) {
             vec2 offset = vec2(float(x), float(y));
-              vec2 point = animatedCrackPoint(cell + offset);
-            float distanceToPoint = length(offset + point - local);
+            vec2 point = crackHash(cell + offset);
+            vec2 delta = offset + point - local;
+            float distanceToPoint = dot(delta, delta);
 
             if (distanceToPoint < nearest) {
               secondNearest = nearest;
@@ -103,25 +95,7 @@ export function applyProceduralCracks(
           }
         }
 
-        float edgeDistance = secondNearest - nearest;
-        return 1.0 - smoothstep(0.0, width, edgeDistance);
-      }
-
-      float proceduralCracks(float width) {
-        vec3 position = vCrackLocalPosition * uCrackScale;
-        vec3 normal = abs(normalize(vCrackLocalNormal));
-        normal = pow(normal, vec3(4.0));
-        normal /= max(normal.x + normal.y + normal.z, 0.0001);
-
-        float crackXY = crackVoronoi(position.xy, width);
-        float crackXZ = crackVoronoi(position.xz, width);
-        float crackYZ = crackVoronoi(position.yz, width);
-
-        return (
-          crackXY * normal.z +
-          crackXZ * normal.y +
-          crackYZ * normal.x
-        );
+        return max(secondNearest - nearest, 0.0);
       }
     `
 
@@ -142,11 +116,19 @@ export function applyProceduralCracks(
       .replace(
         '#include <map_fragment>',
         `#include <map_fragment>
-          float crack = proceduralCracks(uCrackWidth);
-          float crackFill = proceduralCracks(uCrackWidth * 4.0);
-          float crackHighlight = proceduralCracks(uCrackWidth * 0.3);
-          float highlightPulse = 0.35 + 0.65 * (
-            0.5 + 0.5 * sin(uCrackTime * uCrackHighlightSpeed)
+          vec3 crackPosition = vCrackLocalPosition * uCrackScale;
+          vec2 crackUv = crackProjection(crackPosition, vCrackLocalNormal);
+          float crackEdge = crackVoronoiEdge(crackUv);
+          float crack = 1.0 - smoothstep(0.0, uCrackWidth, crackEdge);
+          float crackFill = 1.0 - smoothstep(
+            0.0,
+            uCrackWidth * 4.0,
+            crackEdge
+          );
+          float crackHighlight = 1.0 - smoothstep(
+            0.0,
+            uCrackWidth * 0.3,
+            crackEdge
           );
           diffuseColor.rgb = mix(
             diffuseColor.rgb,
@@ -157,13 +139,13 @@ export function applyProceduralCracks(
           diffuseColor.rgb = mix(
             diffuseColor.rgb,
             uCrackHighlightColor,
-            crackHighlight * uCrackHighlightStrength * highlightPulse
+            crackHighlight * uCrackHighlightStrength * uCrackPulse
           );
-          diffuseColor.rgb += uCrackHighlightColor * crackHighlight * uCrackHighlightGlow * highlightPulse;`,
+          diffuseColor.rgb += uCrackHighlightColor * crackHighlight * uCrackHighlightGlow * uCrackPulse;`,
       )
   }
 
-  material.customProgramCacheKey = () => 'procedural-cracks-v1'
+  material.customProgramCacheKey = () => 'procedural-cracks-static-dominant-v2'
   material.userData.crackUniforms = uniforms
 
   return uniforms

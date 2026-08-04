@@ -7,6 +7,16 @@ export interface CubeGeometryConfig {
   radius: number
 }
 
+export function createCubeGeometry(config: CubeGeometryConfig): THREE.BufferGeometry {
+  return new RoundedBoxGeometry(
+    config.axis,
+    config.axis,
+    config.axis,
+    config.segments,
+    config.radius,
+  )
+}
+
 export class Cube extends THREE.Mesh<THREE.BufferGeometry, THREE.MeshMatcapMaterial> {
   readonly pieceId: string
   readonly cubeGeometry: CubeGeometryConfig
@@ -19,17 +29,9 @@ export class Cube extends THREE.Mesh<THREE.BufferGeometry, THREE.MeshMatcapMater
       segments: 1,
       radius: 0.02,
     },
+    geometry: THREE.BufferGeometry = createCubeGeometry(cubeGeometry),
   ) {
-    super(
-      new RoundedBoxGeometry(
-        cubeGeometry.axis,
-        cubeGeometry.axis,
-        cubeGeometry.axis,
-        cubeGeometry.segments,
-        cubeGeometry.radius,
-      ),
-      material,
-    )
+    super(geometry, material)
     this.pieceId = pieceId
     this.cubeGeometry = cubeGeometry
   }

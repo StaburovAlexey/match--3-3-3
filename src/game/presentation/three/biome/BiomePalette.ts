@@ -33,9 +33,9 @@ export const biomePalettes: Record<BiomeType, BiomePalette> = {
     particleHighlight: '#edc8ff',
   },
   light: {
-    backgroundTop: '#211a09',
-    backgroundBottom: '#77521c',
-    particle: '#ffd45e',
-    particleHighlight: '#fff8d6',
+    backgroundTop: '#2d2406',
+    backgroundBottom: '#c8942f',
+    particle: '#ffe681',
+    particleHighlight: '#fffef0',
   },
 }

@@ -1,7 +1,8 @@
 import * as THREE from 'three'
 import type { BoardItem, BoardPiece, GridPosition } from '../../../core/model/Board.ts'
+import type { CrackRenderMode } from '../materials/CrackRenderMode.ts'
 import { CubeMaterialRegistry } from '../materials/CubeMaterialRegistry.ts'
-import { Cube, type CubeGeometryConfig } from './Cube.ts'
+import { createCubeGeometry, Cube, type CubeGeometryConfig } from './Cube.ts'
 import { CubeSpecialIconRenderer } from './CubeSpecialIconRenderer.ts'
 
 export class CubeBoardView {
@@ -10,15 +11,22 @@ export class CubeBoardView {
     segments: 1,
     radius: 0.02,
   }
+  private readonly geometry = createCubeGeometry(this.cubeGeometry)
   private readonly step = this.cubeGeometry.axis + 0.05
-  private readonly materials = new CubeMaterialRegistry()
+  private readonly materials: CubeMaterialRegistry
   private readonly group = new THREE.Group()
   private readonly cubesByPieceId = new Map<string, Cube>()
   private readonly specialIcons: CubeSpecialIconRenderer
 
-  constructor(items: readonly BoardItem[]) {
+  constructor(items: readonly BoardItem[], crackMode: CrackRenderMode = 'static') {
+    this.materials = new CubeMaterialRegistry(crackMode)
     items.forEach(({ piece, position }) => {
-      const cube = new Cube(piece.id, this.materials.getBase(piece.elementType), this.cubeGeometry)
+      const cube = new Cube(
+        piece.id,
+        this.materials.getBase(piece.elementType),
+        this.cubeGeometry,
+        this.geometry,
+      )
       cube.position.copy(this.getLocalPosition(position))
       cube.scale.setScalar(0)
       cube.visible = piece.active
@@ -76,7 +84,7 @@ export class CubeBoardView {
 
   dispose(): void {
     this.specialIcons.dispose()
-    this.cubes.forEach((cube) => cube.geometry.dispose())
+    this.geometry.dispose()
     this.materials.dispose()
     this.group.removeFromParent()
     this.cubesByPieceId.clear()

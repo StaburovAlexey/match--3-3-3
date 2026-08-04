@@ -5,10 +5,13 @@ import Stats from 'stats.js'
 export class ThreeScene {
   readonly scene = new THREE.Scene()
   readonly camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100)
-  readonly renderer = new THREE.WebGLRenderer({ antialias: true })
+  readonly renderer = new THREE.WebGLRenderer({
+    antialias: true,
+    powerPreference: 'high-performance',
+  })
   private readonly controls: OrbitControls
   private readonly resizeObserver: ResizeObserver
-  private readonly stats = new Stats()
+  private readonly stats: Stats | null
   private readonly timer = new THREE.Timer()
   private readonly container: HTMLElement
   private updateHandler: ((time: number) => void) | null = null
@@ -28,12 +31,17 @@ export class ThreeScene {
     this.controls.enableDamping = true
     this.controls.target.set(0, 0, 0)
 
-    this.stats.showPanel(0)
-    this.stats.dom.style.position = 'absolute'
-    this.stats.dom.style.top = '0'
-    this.stats.dom.style.left = '0'
-    this.stats.dom.style.zIndex = '10'
-    this.container.appendChild(this.stats.dom)
+    const performanceDebugEnabled =
+      import.meta.env.DEV || new URLSearchParams(window.location.search).get('perf') === '1'
+    this.stats = performanceDebugEnabled ? new Stats() : null
+    if (this.stats) {
+      this.stats.showPanel(0)
+      this.stats.dom.style.position = 'absolute'
+      this.stats.dom.style.top = '0'
+      this.stats.dom.style.left = '0'
+      this.stats.dom.style.zIndex = '10'
+      this.container.appendChild(this.stats.dom)
+    }
 
     this.timer.connect(document)
     this.resizeObserver = new ResizeObserver(() => this.resize())
@@ -52,24 +60,26 @@ export class ThreeScene {
     this.updateHandler = null
     this.controls.dispose()
     this.timer.dispose()
-    this.stats.dom.remove()
+    this.stats?.dom.remove()
     this.renderer.dispose()
     this.renderer.domElement.remove()
   }
 
   private readonly render = (): void => {
-    this.stats.begin()
+    this.stats?.begin()
     this.timer.update()
     this.controls.update()
     this.updateHandler?.(this.timer.getElapsed())
     this.renderer.render(this.scene, this.camera)
 
-    const triangles = this.renderer.info.render.triangles
-    if (triangles !== this.triangleCount) {
-      this.triangleCount = triangles
-      console.log(`Отрисовано треугольников: ${this.triangleCount}`)
+    if (this.stats) {
+      const triangles = this.renderer.info.render.triangles
+      if (triangles !== this.triangleCount) {
+        this.triangleCount = triangles
+        console.log(`Отрисовано треугольников: ${this.triangleCount}`)
+      }
     }
-    this.stats.end()
+    this.stats?.end()
   }
 
   private resize(): void {

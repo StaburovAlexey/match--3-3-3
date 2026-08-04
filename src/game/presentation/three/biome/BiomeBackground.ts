@@ -12,6 +12,14 @@ interface BiomeParticleState {
   drift: number
 }
 
+interface BackgroundFrame {
+  origin: THREE.Vector3
+  right: THREE.Vector3
+  up: THREE.Vector3
+  visibleWidth: number
+  visibleHeight: number
+}
+
 const particleCount = 48
 
 export class BiomeBackground {
@@ -25,6 +33,15 @@ export class BiomeBackground {
   private readonly particleStates: BiomeParticleState[]
   private readonly particleTexture: THREE.CanvasTexture
   private readonly worldParticlePosition = new THREE.Vector3()
+  private readonly cameraDirection = new THREE.Vector3()
+  private readonly cameraRotation = new THREE.Quaternion()
+  private readonly backgroundFrame: BackgroundFrame = {
+    origin: new THREE.Vector3(),
+    right: new THREE.Vector3(),
+    up: new THREE.Vector3(),
+    visibleWidth: 0,
+    visibleHeight: 0,
+  }
   private backgroundTexture: THREE.CanvasTexture
   private backgroundMaterial: THREE.SpriteMaterial
   private biome: BiomeType
@@ -68,8 +85,9 @@ export class BiomeBackground {
 
   update(time: number): void {
     if (this.disposed) return
-    this.updateBackgroundTransform()
-    this.updateParticles(time)
+    const frame = this.updateBackgroundFrame()
+    this.updateBackgroundTransform(frame)
+    this.updateParticles(time, frame)
   }
 
   dispose(): void {
@@ -185,14 +203,12 @@ export class BiomeBackground {
     colors.needsUpdate = true
   }
 
-  private updateBackgroundTransform(): void {
-    const frame = this.getBackgroundFrame()
+  private updateBackgroundTransform(frame: BackgroundFrame): void {
     this.background.position.copy(frame.origin)
     this.background.scale.set(frame.visibleWidth, frame.visibleHeight, 1)
   }
 
-  private updateParticles(time: number): void {
-    const frame = this.getBackgroundFrame()
+  private updateParticles(time: number, frame: BackgroundFrame): void {
     this.particleStates.forEach((state, index) => {
       const x = state.x + Math.sin(time * state.speed + state.phase) * state.drift
       const y = state.y + Math.cos(time * state.speed * 0.8 + state.phase) * state.drift
@@ -210,27 +226,19 @@ export class BiomeBackground {
     this.particlePositions.needsUpdate = true
   }
 
-  private getBackgroundFrame(): {
-    origin: THREE.Vector3
-    right: THREE.Vector3
-    up: THREE.Vector3
-    visibleWidth: number
-    visibleHeight: number
-  } {
+  private updateBackgroundFrame(): BackgroundFrame {
     const distance = this.camera.position.length() + 1.5
-    const direction = this.camera.getWorldDirection(new THREE.Vector3())
-    const cameraRotation = this.camera.getWorldQuaternion(new THREE.Quaternion())
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cameraRotation).normalize()
-    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(cameraRotation).normalize()
-    const origin = this.camera.position.clone().addScaledVector(direction, distance)
+    this.camera.getWorldDirection(this.cameraDirection)
+    this.camera.getWorldQuaternion(this.cameraRotation)
+    this.backgroundFrame.right.set(1, 0, 0).applyQuaternion(this.cameraRotation).normalize()
+    this.backgroundFrame.up.set(0, 1, 0).applyQuaternion(this.cameraRotation).normalize()
+    this.backgroundFrame.origin
+      .copy(this.camera.position)
+      .addScaledVector(this.cameraDirection, distance)
     const visibleHeight = 2 * distance * Math.tan(THREE.MathUtils.degToRad(this.camera.fov * 0.5))
 
-    return {
-      origin,
-      right,
-      up,
-      visibleWidth: visibleHeight * this.camera.aspect,
-      visibleHeight,
-    }
+    this.backgroundFrame.visibleWidth = visibleHeight * this.camera.aspect
+    this.backgroundFrame.visibleHeight = visibleHeight
+    return this.backgroundFrame
   }
 }
