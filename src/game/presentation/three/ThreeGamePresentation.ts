@@ -13,6 +13,7 @@ import type { CubeBoardView } from './board/CubeBoardView.ts'
 import { BombExplosionAnimator } from './effects/BombExplosionAnimator.ts'
 import { createBombExplosionConfig } from './effects/BombExplosionConfig.ts'
 import { ColorLightningAnimator } from './effects/ColorLightningAnimator.ts'
+import { CubeClearGlowAnimator } from './effects/CubeClearGlowAnimator.ts'
 import type { CubeStarEmitter } from './effects/CubeStarEmitter.ts'
 import { SparkBurstAnimator } from './effects/SparkBurstAnimator.ts'
 
@@ -26,7 +27,12 @@ export class ThreeGamePresentation implements GamePresentation {
   private readonly board: CubeBoardView
   private readonly stars: CubeStarEmitter
 
-  constructor(board: CubeBoardView, stars: CubeStarEmitter, scene: THREE.Scene) {
+  constructor(
+    board: CubeBoardView,
+    stars: CubeStarEmitter,
+    scene: THREE.Scene,
+    camera: THREE.PerspectiveCamera,
+  ) {
     this.board = board
     this.stars = stars
     const explosionConfig = createBombExplosionConfig()
@@ -37,6 +43,7 @@ export class ThreeGamePresentation implements GamePresentation {
       new ColorLightningAnimator(scene, board),
       new BombExplosionAnimator(scene, board, sparks, explosionConfig),
       sparks,
+      new CubeClearGlowAnimator(scene, camera, board),
     )
     this.refillAnimator = new CubeRefillAnimator(board)
   }

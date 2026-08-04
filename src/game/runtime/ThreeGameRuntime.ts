@@ -32,7 +32,12 @@ export class ThreeGameRuntime {
     this.board = new CubeBoardView(grid.items)
     this.scene.scene.add(this.board.object)
     this.stars = new CubeStarEmitter(this.scene.scene)
-    this.presentation = new ThreeGamePresentation(this.board, this.stars, this.scene.scene)
+    this.presentation = new ThreeGamePresentation(
+      this.board,
+      this.stars,
+      this.scene.scene,
+      this.scene.camera,
+    )
     this.controller = new GameController(
       grid,
       validator,
