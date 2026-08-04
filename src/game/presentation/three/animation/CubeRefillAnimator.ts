@@ -2,6 +2,7 @@ import { gsap } from 'gsap'
 import type { RefillPlan } from '../../../core/board/BoardRefillPlanner.ts'
 import type { AnimationResult } from '../../../core/flow/GamePresentation.ts'
 import type { CubeBoardView } from '../board/CubeBoardView.ts'
+import type { Cube } from '../board/Cube.ts'
 import { TimelineScope } from './TimelineScope.ts'
 
 export class CubeRefillAnimator {
@@ -9,10 +10,49 @@ export class CubeRefillAnimator {
   private readonly fallDuration = 0.6
   private readonly spawnScaleDelay = 0.2
   private readonly spawnScaleDuration = 0.35
+  private readonly initialSpawnDelay = 0.35
   private readonly board: CubeBoardView
 
   constructor(board: CubeBoardView) {
     this.board = board
+  }
+
+  playInitial(cubes: readonly Cube[]): Promise<AnimationResult> {
+    const timeline = gsap.timeline({ paused: true })
+    const highestTargetY = Math.max(...cubes.map((cube) => cube.position.y), 0)
+    const spawnY = highestTargetY + (cubes[0]?.cubeGeometry.axis ?? 0.2) + 0.05
+
+    cubes.forEach((cube) => {
+      const target = cube.position.clone()
+      cube.position.set(target.x, spawnY, target.z)
+      cube.scale.setScalar(0)
+      cube.visible = true
+      timeline
+        .to(
+          cube.position,
+          {
+            x: target.x,
+            y: target.y,
+            z: target.z,
+            duration: this.fallDuration,
+            ease: 'power2.out',
+          },
+          this.initialSpawnDelay,
+        )
+        .to(
+          cube.scale,
+          {
+            x: 1,
+            y: 1,
+            z: 1,
+            duration: this.spawnScaleDuration,
+            ease: 'back.out(1.4)',
+          },
+          this.initialSpawnDelay + this.spawnScaleDelay,
+        )
+    })
+
+    return this.scope.play(timeline)
   }
 
   play(plan: RefillPlan): Promise<AnimationResult> {

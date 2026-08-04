@@ -10,7 +10,6 @@ export class ThreeScene {
   private readonly resizeObserver: ResizeObserver
   private readonly stats = new Stats()
   private readonly timer = new THREE.Timer()
-  private readonly axes = new THREE.AxesHelper(3)
   private readonly container: HTMLElement
   private updateHandler: ((time: number) => void) | null = null
   private triangleCount = 0
@@ -36,7 +35,6 @@ export class ThreeScene {
     this.stats.dom.style.zIndex = '10'
     this.container.appendChild(this.stats.dom)
 
-    this.scene.add(this.axes)
     this.timer.connect(document)
     this.resizeObserver = new ResizeObserver(() => this.resize())
     this.resizeObserver.observe(this.container)
@@ -54,8 +52,6 @@ export class ThreeScene {
     this.updateHandler = null
     this.controls.dispose()
     this.timer.dispose()
-    this.axes.dispose()
-    this.axes.removeFromParent()
     this.stats.dom.remove()
     this.renderer.dispose()
     this.renderer.domElement.remove()
@@ -64,8 +60,8 @@ export class ThreeScene {
   private readonly render = (): void => {
     this.stats.begin()
     this.timer.update()
-    this.updateHandler?.(this.timer.getElapsed())
     this.controls.update()
+    this.updateHandler?.(this.timer.getElapsed())
     this.renderer.render(this.scene, this.camera)
 
     const triangles = this.renderer.info.render.triangles

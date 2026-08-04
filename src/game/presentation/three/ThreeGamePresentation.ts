@@ -6,7 +6,6 @@ import { CubeMatchAnimator } from './animation/CubeMatchAnimator.ts'
 import { CubeRebuildAnimator } from './animation/CubeRebuildAnimator.ts'
 import { CubeRefillAnimator } from './animation/CubeRefillAnimator.ts'
 import { CubeShakeAnimator } from './animation/CubeShakeAnimator.ts'
-import { CubeSpawnAnimator } from './animation/CubeSpawnAnimator.ts'
 import { CubeSwapAnimator } from './animation/CubeSwapAnimator.ts'
 import { SpecialClearAnimator } from './animation/SpecialClearAnimator.ts'
 import type { CubeBoardView } from './board/CubeBoardView.ts'
@@ -19,7 +18,6 @@ import { SparkBurstAnimator } from './effects/SparkBurstAnimator.ts'
 
 export class ThreeGamePresentation implements GamePresentation {
   private readonly shake = new CubeShakeAnimator()
-  private readonly spawnAnimator = new CubeSpawnAnimator()
   private readonly swapAnimator = new CubeSwapAnimator(this.shake)
   private readonly matchAnimator: CubeMatchAnimator
   private readonly refillAnimator: CubeRefillAnimator
@@ -49,7 +47,7 @@ export class ThreeGamePresentation implements GamePresentation {
   }
 
   spawn(pieces: readonly BoardPiece[]): Promise<AnimationResult> {
-    return this.spawnAnimator.play(pieces.map((piece) => this.board.getCube(piece)))
+    return this.refillAnimator.playInitial(pieces.map((piece) => this.board.getCube(piece)))
   }
 
   select(piece: BoardPiece): void {
@@ -100,7 +98,6 @@ export class ThreeGamePresentation implements GamePresentation {
     this.refillAnimator.destroy()
     this.matchAnimator.destroy()
     this.swapAnimator.destroy()
-    this.spawnAnimator.destroy()
     this.shake.destroy()
   }
 }
