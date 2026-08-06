@@ -2,6 +2,8 @@ import * as THREE from 'three'
 import type { RefillPlan } from '../../core/board/BoardRefillPlanner.ts'
 import type { AnimationResult, GamePresentation } from '../../core/flow/GamePresentation.ts'
 import type { BoardPiece, MatchResolution } from '../../core/model/Board.ts'
+import type { AbilityPlan } from '../../core/ability/AbilityPlanner.ts'
+import { AbilityAnimator } from './animation/AbilityAnimator.ts'
 import { CubeMatchAnimator } from './animation/CubeMatchAnimator.ts'
 import { CubeRebuildAnimator } from './animation/CubeRebuildAnimator.ts'
 import { CubeRefillAnimator } from './animation/CubeRefillAnimator.ts'
@@ -22,6 +24,7 @@ export class ThreeGamePresentation implements GamePresentation {
   private readonly matchAnimator: CubeMatchAnimator
   private readonly refillAnimator: CubeRefillAnimator
   private readonly rebuildAnimator = new CubeRebuildAnimator()
+  private readonly abilityAnimator: AbilityAnimator
   private readonly board: CubeBoardView
   private readonly stars: CubeStarEmitter
 
@@ -33,6 +36,7 @@ export class ThreeGamePresentation implements GamePresentation {
   ) {
     this.board = board
     this.stars = stars
+    this.abilityAnimator = new AbilityAnimator(board, this.shake)
     const explosionConfig = createBombExplosionConfig()
     const sparks = new SparkBurstAnimator(scene, board, explosionConfig)
     this.matchAnimator = new CubeMatchAnimator(
@@ -80,6 +84,21 @@ export class ThreeGamePresentation implements GamePresentation {
     return this.refillAnimator.play(plan)
   }
 
+  previewAbility(
+    plan: AbilityPlan,
+    mode: 'selection' | 'rotation' = 'rotation',
+  ): Promise<AnimationResult> {
+    return this.abilityAnimator.preview(plan, mode)
+  }
+
+  clearAbilityPreview(): void {
+    this.abilityAnimator.clearPreview()
+  }
+
+  animateAbility(plan: AbilityPlan): Promise<AnimationResult> {
+    return this.abilityAnimator.play(plan)
+  }
+
   hideForRebuild(pieces: readonly BoardPiece[]): Promise<AnimationResult> {
     this.matchAnimator.stopIdleAnimations()
     return this.rebuildAnimator.hide(pieces.map((piece) => this.board.getCube(piece)))
@@ -96,6 +115,7 @@ export class ThreeGamePresentation implements GamePresentation {
   dispose(): void {
     this.rebuildAnimator.destroy()
     this.refillAnimator.destroy()
+    this.abilityAnimator.destroy()
     this.matchAnimator.destroy()
     this.swapAnimator.destroy()
     this.shake.destroy()

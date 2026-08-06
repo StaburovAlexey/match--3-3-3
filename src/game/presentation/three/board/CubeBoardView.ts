@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import type { BoardItem, BoardPiece, GridPosition } from '../../../core/model/Board.ts'
+import type { ElementType } from '../../../core/model/Element.ts'
 import type { CrackRenderMode } from '../materials/CrackRenderMode.ts'
 import { CubeMaterialRegistry } from '../materials/CubeMaterialRegistry.ts'
 import { createCubeGeometry, Cube, type CubeGeometryConfig } from './Cube.ts'
@@ -67,6 +68,13 @@ export class CubeBoardView {
 
   syncPieces(pieces: readonly BoardPiece[]): void {
     pieces.forEach((piece) => this.syncPiece(piece))
+  }
+
+  setVisualElementType(piece: BoardPiece, elementType: ElementType): void {
+    const cube = this.getCube(piece)
+    cube.material = piece.special
+      ? this.materials.getSpecial(elementType, piece.special.type)
+      : this.materials.getBase(elementType)
   }
 
   getLocalPosition(position: GridPosition): THREE.Vector3 {

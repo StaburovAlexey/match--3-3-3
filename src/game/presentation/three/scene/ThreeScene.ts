@@ -13,6 +13,7 @@ export class ThreeScene {
   private readonly resizeObserver: ResizeObserver
   private readonly stats: Stats | null
   private readonly timer = new THREE.Timer()
+  private readonly cameraOffset = new THREE.Vector3()
   private readonly container: HTMLElement
   private updateHandler: ((time: number) => void) | null = null
   private triangleCount = 0
@@ -52,6 +53,14 @@ export class ThreeScene {
 
   setUpdateHandler(handler: (time: number) => void): void {
     this.updateHandler = handler
+  }
+
+  getCameraSideAxis(): 'x' | 'z' {
+    this.camera.getWorldPosition(this.cameraOffset).sub(this.controls.target)
+    const absX = Math.abs(this.cameraOffset.x)
+    const absZ = Math.abs(this.cameraOffset.z)
+
+    return absZ >= absX ? 'z' : 'x'
   }
 
   dispose(): void {
