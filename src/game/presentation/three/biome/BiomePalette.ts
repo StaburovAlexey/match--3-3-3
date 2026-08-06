@@ -7,6 +7,16 @@ export interface BiomePalette {
   particleHighlight: string
 }
 
+export interface VersusBiomeTypes {
+  opponentElementType: BiomeType
+  playerElementType: BiomeType
+}
+
+export interface VersusBiomePalette {
+  opponent: BiomePalette
+  player: BiomePalette
+}
+
 export const biomePalettes: Record<BiomeType, BiomePalette> = {
   ice: {
     backgroundTop: '#061426',
@@ -38,4 +48,11 @@ export const biomePalettes: Record<BiomeType, BiomePalette> = {
     particle: '#ffe681',
     particleHighlight: '#fffef0',
   },
+}
+
+export function resolveVersusBiomePalette(types: VersusBiomeTypes): VersusBiomePalette {
+  return {
+    opponent: biomePalettes[types.opponentElementType],
+    player: biomePalettes[types.playerElementType],
+  }
 }

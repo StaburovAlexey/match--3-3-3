@@ -32,20 +32,54 @@ export function createCubeClearGlowPath(
   start: THREE.Vector3,
   pieceId: string,
   options: CubeClearGlowPathOptions,
+  target?: THREE.Vector3,
 ): CubeClearGlowPath {
   const side = getCubeClearGlowSide(start.x, pieceId)
+  const end = target
+    ? target.clone().setZ(start.z)
+    : new THREE.Vector3(
+        THREE.MathUtils.clamp(
+          start.x + side * options.endOutward,
+          -horizontalLimit,
+          horizontalLimit,
+        ),
+        options.endY,
+        start.z,
+      )
   const control = new THREE.Vector3(
-    THREE.MathUtils.clamp(start.x + side * options.arcOutward, -horizontalLimit, horizontalLimit),
-    THREE.MathUtils.lerp(start.y, options.endY, options.controlYProgress),
-    start.z,
-  )
-  const end = new THREE.Vector3(
-    THREE.MathUtils.clamp(start.x + side * options.endOutward, -horizontalLimit, horizontalLimit),
-    options.endY,
+    target
+      ? THREE.MathUtils.clamp(
+          THREE.MathUtils.lerp(start.x, end.x, 0.5) + side * options.arcOutward,
+          -horizontalLimit,
+          horizontalLimit,
+        )
+      : THREE.MathUtils.clamp(
+          start.x + side * options.arcOutward,
+          -horizontalLimit,
+          horizontalLimit,
+        ),
+    THREE.MathUtils.lerp(start.y, end.y, options.controlYProgress),
     start.z,
   )
 
   return { start: start.clone(), control, end, side }
+}
+
+export function updateCubeClearGlowPathTarget(
+  path: CubeClearGlowPath,
+  target: THREE.Vector3,
+  options: CubeClearGlowPathOptions,
+): void {
+  path.end.set(target.x, target.y, path.start.z)
+  path.control.set(
+    THREE.MathUtils.clamp(
+      THREE.MathUtils.lerp(path.start.x, path.end.x, 0.5) + path.side * options.arcOutward,
+      -horizontalLimit,
+      horizontalLimit,
+    ),
+    THREE.MathUtils.lerp(path.start.y, path.end.y, options.controlYProgress),
+    path.start.z,
+  )
 }
 
 export function getQuadraticBezierPoint(

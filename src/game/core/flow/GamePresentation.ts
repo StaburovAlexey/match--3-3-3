@@ -4,13 +4,20 @@ import type { AbilityPlan } from '../ability/AbilityPlanner.ts'
 
 export type AnimationResult = 'completed' | 'cancelled'
 
+export interface MatchAnimationOptions {
+  rewardMultiplier: number
+}
+
 export interface GamePresentation {
   spawn(pieces: readonly BoardPiece[]): Promise<AnimationResult>
   select(piece: BoardPiece): void
   deselect(piece: BoardPiece): void
   animateRejectedSwap(first: BoardPiece, second: BoardPiece): Promise<AnimationResult>
   animateSwap(first: BoardPiece, second: BoardPiece): Promise<AnimationResult>
-  animateMatches(resolution: MatchResolution): Promise<AnimationResult>
+  animateMatches(
+    resolution: MatchResolution,
+    options: MatchAnimationOptions,
+  ): Promise<AnimationResult>
   animateRefill(plan: RefillPlan): Promise<AnimationResult>
   previewAbility(plan: AbilityPlan, mode?: 'selection' | 'rotation'): Promise<AnimationResult>
   clearAbilityPreview(): void

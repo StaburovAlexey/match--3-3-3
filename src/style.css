@@ -25,6 +25,56 @@ input {
   font: inherit;
 }
 
+.pvp-hud-shake-target {
+  transform-origin: center;
+}
+
+.pvp-hud-shake-target--active {
+  animation: pvp-hud-shake-target var(--pvp-hud-shake-duration, 280ms)
+    cubic-bezier(0.2, 0.75, 0.35, 1) var(--pvp-hud-shake-delay, 0ms) both;
+}
+
+@keyframes pvp-hud-shake-target {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  20% {
+    transform: translate3d(calc(var(--pvp-hud-shake-x, 2px) * -1), var(--pvp-hud-shake-y, 2px), 0)
+      rotate(calc(var(--pvp-hud-shake-angle, 0.5deg) * -1));
+  }
+
+  40% {
+    transform: translate3d(var(--pvp-hud-shake-x, 2px), calc(var(--pvp-hud-shake-y, 2px) * -1), 0)
+      rotate(var(--pvp-hud-shake-angle, 0.5deg));
+  }
+
+  60% {
+    transform: translate3d(
+        calc(var(--pvp-hud-shake-x, 2px) * -0.65),
+        calc(var(--pvp-hud-shake-y, 2px) * 0.65),
+        0
+      )
+      rotate(calc(var(--pvp-hud-shake-angle, 0.5deg) * -0.65));
+  }
+
+  80% {
+    transform: translate3d(
+        calc(var(--pvp-hud-shake-x, 2px) * 0.35),
+        calc(var(--pvp-hud-shake-y, 2px) * -0.35),
+        0
+      )
+      rotate(calc(var(--pvp-hud-shake-angle, 0.5deg) * 0.35));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pvp-hud-shake-target--active {
+    animation: none;
+  }
+}
+
 .app-shell {
   position: relative;
   width: 100%;

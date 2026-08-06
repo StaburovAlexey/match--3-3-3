@@ -1,6 +1,11 @@
 import * as THREE from 'three'
+import type { RewardAnimationOptions } from '../../core/model/RewardTarget.ts'
 import type { RefillPlan } from '../../core/board/BoardRefillPlanner.ts'
-import type { AnimationResult, GamePresentation } from '../../core/flow/GamePresentation.ts'
+import type {
+  AnimationResult,
+  GamePresentation,
+  MatchAnimationOptions,
+} from '../../core/flow/GamePresentation.ts'
 import type { BoardPiece, MatchResolution } from '../../core/model/Board.ts'
 import type { AbilityPlan } from '../../core/ability/AbilityPlanner.ts'
 import { AbilityAnimator } from './animation/AbilityAnimator.ts'
@@ -27,15 +32,21 @@ export class ThreeGamePresentation implements GamePresentation {
   private readonly abilityAnimator: AbilityAnimator
   private readonly board: CubeBoardView
   private readonly stars: CubeStarEmitter
+  private readonly onMatchMultiplierChanged:
+    NonNullable<RewardAnimationOptions['onMatchMultiplierChanged']> | undefined
+  private readonly onHudShake: NonNullable<RewardAnimationOptions['onHudShake']> | undefined
 
   constructor(
     board: CubeBoardView,
     stars: CubeStarEmitter,
     scene: THREE.Scene,
     camera: THREE.PerspectiveCamera,
+    options: RewardAnimationOptions = {},
   ) {
     this.board = board
     this.stars = stars
+    this.onMatchMultiplierChanged = options.onMatchMultiplierChanged
+    this.onHudShake = options.onHudShake
     this.abilityAnimator = new AbilityAnimator(board, this.shake)
     const explosionConfig = createBombExplosionConfig()
     const sparks = new SparkBurstAnimator(scene, board, explosionConfig)
@@ -43,9 +54,11 @@ export class ThreeGamePresentation implements GamePresentation {
       board,
       new SpecialClearAnimator(this.shake),
       new ColorLightningAnimator(scene, board),
-      new BombExplosionAnimator(scene, board, sparks, explosionConfig),
+      new BombExplosionAnimator(scene, board, sparks, explosionConfig, () =>
+        this.onHudShake?.('bomb'),
+      ),
       sparks,
-      new CubeClearGlowAnimator(scene, camera, board),
+      new CubeClearGlowAnimator(scene, camera, board, undefined, options),
     )
     this.refillAnimator = new CubeRefillAnimator(board)
   }
@@ -76,8 +89,13 @@ export class ThreeGamePresentation implements GamePresentation {
     return this.swapAnimator.play(firstCube, secondCube)
   }
 
-  animateMatches(resolution: MatchResolution): Promise<AnimationResult> {
-    return this.matchAnimator.play(resolution)
+  animateMatches(
+    resolution: MatchResolution,
+    options: MatchAnimationOptions,
+  ): Promise<AnimationResult> {
+    this.onMatchMultiplierChanged?.(options.rewardMultiplier)
+    this.onHudShake?.('match')
+    return this.matchAnimator.play(resolution, options.rewardMultiplier)
   }
 
   animateRefill(plan: RefillPlan): Promise<AnimationResult> {

@@ -39,9 +39,14 @@ export interface MatchEffect {
   pieces: BoardPiece[]
 }
 
+export interface DestroyedCube {
+  readonly piece: BoardPiece
+  readonly elementType: ElementType
+}
+
 export interface MatchResolution {
   groups: MatchGroup[]
-  clearedPieces: BoardPiece[]
+  destroyedCubes: DestroyedCube[]
   createdSpecials: Array<{
     piece: BoardPiece
     special: SpecialState

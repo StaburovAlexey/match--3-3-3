@@ -7,10 +7,33 @@ import type {
 import type { AbilityEffect } from './game/core/ability/AbilityCommand.ts'
 import type { GameRuntimeErrorEvent } from './game/runtime/ThreeGameRuntime.ts'
 import ThreeScene from './game/gui/components/ThreeScene.vue'
+import GameModeSelect from './game/gui/components/GameModeSelect.vue'
+import PvPBattle from './game/pvp/PvPBattle.vue'
+import DevHeroSelect from './game/pvp/components/DevHeroSelect.vue'
+import {
+  defaultOpponentHero,
+  defaultPlayerHero,
+  getHeroById,
+  heroCatalog,
+} from './game/pvp/data/HeroCatalog.ts'
 
-const isLightningLab = new URLSearchParams(window.location.search).has('lightning-lab')
-const isBombLab = new URLSearchParams(window.location.search).has('bomb-lab')
-const isClearGlowLab = new URLSearchParams(window.location.search).has('clear-glow-lab')
+const searchParams = new URLSearchParams(window.location.search)
+const isLightningLab = searchParams.has('lightning-lab')
+const isBombLab = searchParams.has('bomb-lab')
+const isClearGlowLab = searchParams.has('clear-glow-lab')
+const isDev = import.meta.env.DEV
+const initialMode = searchParams.has('pvp')
+  ? 'pvp'
+  : searchParams.has('classic')
+    ? 'classic'
+    : 'select'
+type AppMode = 'select' | 'classic' | 'pvp' | 'dev-hero-select'
+
+const mode = shallowRef<AppMode>(initialMode)
+const selectedPlayerHero = shallowRef(defaultPlayerHero)
+const selectedOpponentHero = shallowRef(defaultOpponentHero)
+const playerRating = 1200
+const opponentRating = 1250
 const LightningLab = defineAsyncComponent(() => import('./game/gui/components/LightningLab.vue'))
 const BombExplosionLab = defineAsyncComponent(
   () => import('./game/gui/components/BombExplosionLab.vue'),
@@ -51,6 +74,28 @@ const abilityRequest = shallowRef<AbilityActivationRequest | null>(null)
 const abilityStatus = shallowRef<string | null>(null)
 let abilitySequence = 0
 
+function handleModeSelect(nextMode: 'classic' | 'pvp'): void {
+  if (nextMode === 'pvp') {
+    selectedPlayerHero.value = defaultPlayerHero
+    selectedOpponentHero.value = defaultOpponentHero
+  }
+  mode.value = nextMode
+}
+
+function openDevHeroSelect(): void {
+  if (isDev) mode.value = 'dev-hero-select'
+}
+
+function startDevBattle(playerId: string, opponentId: string): void {
+  const player = getHeroById(playerId)
+  const opponent = getHeroById(opponentId)
+  if (!player || !opponent) return
+
+  selectedPlayerHero.value = player
+  selectedOpponentHero.value = opponent
+  mode.value = 'pvp'
+}
+
 function activateAbility(ability: CharacterAbilityViewModel): void {
   if (abilityRequest.value || ability.charges <= 0) return
   abilitySequence += 1
@@ -88,6 +133,28 @@ function handleRuntimeError(event: GameRuntimeErrorEvent): void {
   <CubeClearGlowLab v-if="isClearGlowLab" />
   <BombExplosionLab v-else-if="isBombLab" />
   <LightningLab v-else-if="isLightningLab" />
+  <GameModeSelect
+    v-else-if="mode === 'select'"
+    @select="handleModeSelect"
+    @dev-hero-select="openDevHeroSelect"
+  />
+  <DevHeroSelect
+    v-else-if="isDev && mode === 'dev-hero-select'"
+    :heroes="heroCatalog"
+    :initial-player-id="selectedPlayerHero.id"
+    :initial-opponent-id="selectedOpponentHero.id"
+    @start="startDevBattle"
+    @back="mode = 'select'"
+  />
+  <PvPBattle
+    v-else-if="mode === 'pvp'"
+    :key="`${selectedPlayerHero.id}:${selectedOpponentHero.id}`"
+    :player="selectedPlayerHero"
+    :player-rating="playerRating"
+    :opponent="selectedOpponentHero"
+    :opponent-rating="opponentRating"
+    @exit="mode = 'select'"
+  />
   <main v-else class="app-shell">
     <ThreeScene
       :ability-request="abilityRequest"

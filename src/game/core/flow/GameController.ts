@@ -20,8 +20,21 @@ import {
 import { AbilityPlanner, type AbilityPlan } from '../ability/AbilityPlanner.ts'
 import { MatchResolver } from '../match/MatchResolver.ts'
 import { MatchValidator } from '../match/MatchValidator.ts'
-import type { BoardPiece, MatchDirection } from '../model/Board.ts'
+import { MatchStreakRewardHandler } from '../match/MatchStreakRewardHandler.ts'
+import type { BoardPiece, MatchDirection, MatchResolution } from '../model/Board.ts'
 import type { AnimationResult, GamePresentation } from './GamePresentation.ts'
+
+export interface BoardTurnResolution {
+  resolutions: MatchResolution[]
+  rewardMultipliers: number[]
+}
+
+export type GameTurnResolution =
+  ({ type: 'board' } & BoardTurnResolution) | { type: 'ability'; abilityId: string }
+
+export interface GameControllerOptions {
+  onTurnResolved?: (event: GameTurnResolution) => void
+}
 
 export type GamePhase =
   | 'spawning'
@@ -57,6 +70,7 @@ export class GameController {
   private readonly completedActivationIds = new Set<string>()
   private readonly abilityStateListeners = new Set<AbilityStateListener>()
   private readonly reportError: (error: unknown, context: string) => void
+  private readonly onTurnResolved: (event: GameTurnResolution) => void
 
   constructor(
     grid: BoardGrid,
@@ -66,6 +80,7 @@ export class GameController {
     generator: PlayableBoardGenerator,
     presentation: GamePresentation,
     reportError: (error: unknown, context: string) => void = () => undefined,
+    options: GameControllerOptions = {},
   ) {
     this.grid = grid
     this.validator = validator
@@ -75,6 +90,7 @@ export class GameController {
     this.presentation = presentation
     this.abilities = new AbilityPlanner(grid)
     this.reportError = reportError
+    this.onTurnResolved = options.onTurnResolved ?? (() => undefined)
   }
 
   get phase(): GamePhase {
@@ -147,7 +163,8 @@ export class GameController {
         const result = await this.presentation.animateSwap(first, piece)
         if (!this.canContinue(result)) return
         this.grid.swap(first, piece)
-        await this.resolveBoard([first, piece])
+        const resolutions = await this.resolveBoard([first, piece])
+        if (resolutions) this.onTurnResolved({ type: 'board', ...resolutions })
         return
       }
 
@@ -261,7 +278,11 @@ export class GameController {
   private async executeAbility(): Promise<AbilityConfirmResult> {
     const request = this.activeAbilityRequest
     if (this.currentPhase !== 'abilitySelecting' || !this.abilityDefinition || !request) {
-      return { status: 'invalid-selection', code: 'invalid-selection', message: 'Способность не выбрана' }
+      return {
+        status: 'invalid-selection',
+        code: 'invalid-selection',
+        message: 'Способность не выбрана',
+      }
     }
 
     const previewPromise = this.rotatePreviewPromise
@@ -336,6 +357,7 @@ export class GameController {
         affectedPieceIds: plan.pieces.map((piece) => piece.id),
         rebuilt,
       }
+      this.onTurnResolved({ type: 'ability', abilityId: request.abilityId })
       this.finalizeAbilitySession()
       return applied
     } catch (error) {
@@ -373,24 +395,33 @@ export class GameController {
     this.abilityStateListeners.clear()
   }
 
-  private async resolveBoard(seedPieces: readonly BoardPiece[]): Promise<void> {
+  private async resolveBoard(
+    seedPieces: readonly BoardPiece[],
+  ): Promise<BoardTurnResolution | null> {
+    const resolutions: MatchResolution[] = []
+    const rewardMultipliers: number[] = []
+    const matchStreak = new MatchStreakRewardHandler()
     let resolution = this.matches.resolveFrom(seedPieces)
 
     while (resolution.groups.length > 0) {
+      resolutions.push(resolution)
+      const rewardMultiplier = matchStreak.nextMultiplier()
+      rewardMultipliers.push(rewardMultiplier)
       this.currentPhase = 'clearing'
       resolution.createdSpecials.forEach(({ piece, special }) => {
         piece.special = { ...special }
       })
       this.presentation.syncPieces(resolution.createdSpecials.map(({ piece }) => piece))
 
-      const clearResult = await this.presentation.animateMatches(resolution)
-      if (!this.canContinue(clearResult)) return
+      const clearResult = await this.presentation.animateMatches(resolution, { rewardMultiplier })
+      if (!this.canContinue(clearResult)) return null
 
-      resolution.clearedPieces.forEach((piece) => {
+      const destroyedPieces = resolution.destroyedCubes.map(({ piece }) => piece)
+      destroyedPieces.forEach((piece) => {
         piece.active = false
         piece.special = null
       })
-      this.presentation.syncPieces(resolution.clearedPieces)
+      this.presentation.syncPieces(destroyedPieces)
 
       this.currentPhase = 'refilling'
       const refillPlan = this.refill.createPlan()
@@ -403,16 +434,17 @@ export class GameController {
       this.presentation.syncPieces(refillPlan.spawns.map(({ piece }) => piece))
 
       const refillResult = await this.presentation.animateRefill(refillPlan)
-      if (!this.canContinue(refillResult)) return
+      if (!this.canContinue(refillResult)) return null
       resolution = this.matches.resolveFrom(refillPlan.affectedPieces)
     }
 
     if (!this.validator.hasAvailableSwap()) {
       await this.rebuildBoard()
-      return
+      return { resolutions, rewardMultipliers }
     }
 
     this.currentPhase = 'idle'
+    return { resolutions, rewardMultipliers }
   }
 
   private async rebuildBoard(): Promise<boolean> {
@@ -658,9 +690,7 @@ export class GameController {
       this.setAbilityError(null)
     } catch (error) {
       this.rotatePlan = null
-      this.setAbilityError(
-        error instanceof Error ? error.message : 'Поворот сегмента недоступен',
-      )
+      this.setAbilityError(error instanceof Error ? error.message : 'Поворот сегмента недоступен')
     }
   }
 
@@ -760,7 +790,8 @@ export class GameController {
     code: AbilityRejectedResult['code'],
     message: string,
   ): AbilityRejectedResult {
-    const record = typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
+    const record =
+      typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
     return {
       status: 'rejected',
       activationId: typeof record.activationId === 'string' ? record.activationId : '',

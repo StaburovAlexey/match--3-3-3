@@ -1,7 +1,12 @@
 import * as THREE from 'three'
 import type { BiomeType } from '../../../core/model/Biome.ts'
 import { createRadialGlowTexture } from '../effects/createRadialGlowTexture.ts'
-import { biomePalettes, type BiomePalette } from './BiomePalette.ts'
+import {
+  biomePalettes,
+  resolveVersusBiomePalette,
+  type BiomePalette,
+  type VersusBiomeTypes,
+} from './BiomePalette.ts'
 
 interface BiomeParticleState {
   x: number
@@ -45,14 +50,21 @@ export class BiomeBackground {
   private backgroundTexture: THREE.CanvasTexture
   private backgroundMaterial: THREE.SpriteMaterial
   private biome: BiomeType
+  private readonly versusBackground?: VersusBiomeTypes
   private disposed = false
 
-  constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, biome: BiomeType) {
+  constructor(
+    scene: THREE.Scene,
+    camera: THREE.PerspectiveCamera,
+    biome: BiomeType,
+    versusBackground?: VersusBiomeTypes,
+  ) {
     this.scene = scene
     this.camera = camera
     this.biome = biome
+    this.versusBackground = versusBackground
     this.particleTexture = createRadialGlowTexture()
-    this.backgroundTexture = this.createGradientTexture(biomePalettes[biome])
+    this.backgroundTexture = this.createBackgroundTexture(biome)
     this.backgroundMaterial = this.createBackgroundMaterial(this.backgroundTexture)
     this.background.material = this.backgroundMaterial
     this.background.renderOrder = -100
@@ -74,10 +86,10 @@ export class BiomeBackground {
   }
 
   setBiome(biome: BiomeType): void {
-    if (this.disposed || this.biome === biome) return
+    if (this.disposed || this.versusBackground || this.biome === biome) return
     this.biome = biome
     this.backgroundTexture.dispose()
-    this.backgroundTexture = this.createGradientTexture(biomePalettes[biome])
+    this.backgroundTexture = this.createBackgroundTexture(biome)
     this.backgroundMaterial.map = this.backgroundTexture
     this.backgroundMaterial.needsUpdate = true
     this.applyPalette(biome)
@@ -112,31 +124,71 @@ export class BiomeBackground {
     })
   }
 
-  private createGradientTexture(palette: BiomePalette): THREE.CanvasTexture {
+  private createBackgroundTexture(biome: BiomeType): THREE.CanvasTexture {
     const canvas = document.createElement('canvas')
     canvas.width = 512
     canvas.height = 512
     const context = canvas.getContext('2d')
     if (!context) throw new Error('Не удалось создать canvas для фона биома')
 
-    const gradient = context.createLinearGradient(0, 0, 0, canvas.height)
-    gradient.addColorStop(0, palette.backgroundTop)
-    gradient.addColorStop(1, palette.backgroundBottom)
-    context.fillStyle = gradient
-    context.fillRect(0, 0, canvas.width, canvas.height)
-
-    const glow = context.createRadialGradient(256, 220, 0, 256, 220, 360)
-    glow.addColorStop(0, `${palette.particle}55`)
-    glow.addColorStop(0.45, `${palette.particle}15`)
-    glow.addColorStop(1, `${palette.particle}00`)
-    context.fillStyle = glow
-    context.fillRect(0, 0, canvas.width, canvas.height)
+    if (this.versusBackground) {
+      this.drawVersusBackground(context, canvas, this.versusBackground)
+    } else {
+      this.drawSingleBiomeBackground(context, canvas, biomePalettes[biome])
+    }
 
     const texture = new THREE.CanvasTexture(canvas)
     texture.colorSpace = THREE.SRGBColorSpace
     texture.minFilter = THREE.LinearFilter
     texture.magFilter = THREE.LinearFilter
     return texture
+  }
+
+  private drawSingleBiomeBackground(
+    context: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    palette: BiomePalette,
+  ): void {
+    const gradient = context.createLinearGradient(0, 0, 0, canvas.height)
+    gradient.addColorStop(0, palette.backgroundTop)
+    gradient.addColorStop(1, palette.backgroundBottom)
+    context.fillStyle = gradient
+    context.fillRect(0, 0, canvas.width, canvas.height)
+    this.drawGlow(context, canvas, palette.particle, 256, 220, 360)
+  }
+
+  private drawVersusBackground(
+    context: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    types: VersusBiomeTypes,
+  ): void {
+    const { opponent, player } = resolveVersusBiomePalette(types)
+    const gradient = context.createLinearGradient(canvas.width, 0, 0, canvas.height)
+    gradient.addColorStop(0, opponent.backgroundTop)
+    gradient.addColorStop(0.42, opponent.backgroundBottom)
+    gradient.addColorStop(0.54, player.backgroundTop)
+    gradient.addColorStop(1, player.backgroundBottom)
+    context.fillStyle = gradient
+    context.fillRect(0, 0, canvas.width, canvas.height)
+
+    this.drawGlow(context, canvas, opponent.particle, 332, 140, 300)
+    this.drawGlow(context, canvas, player.particle, 180, 372, 300)
+  }
+
+  private drawGlow(
+    context: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    color: string,
+    x: number,
+    y: number,
+    radius: number,
+  ): void {
+    const glow = context.createRadialGradient(x, y, 0, x, y, radius)
+    glow.addColorStop(0, `${color}55`)
+    glow.addColorStop(0.45, `${color}15`)
+    glow.addColorStop(1, `${color}00`)
+    context.fillStyle = glow
+    context.fillRect(0, 0, canvas.width, canvas.height)
   }
 
   private createParticles(palette: BiomePalette): {
@@ -191,6 +243,11 @@ export class BiomeBackground {
   }
 
   private applyPalette(biome: BiomeType): void {
+    if (this.versusBackground) {
+      this.applyVersusPalette(this.versusBackground)
+      return
+    }
+
     const palette = biomePalettes[biome]
     this.scene.background = new THREE.Color(palette.backgroundBottom)
     const colors = this.particles.geometry.getAttribute('color') as THREE.BufferAttribute
@@ -199,6 +256,34 @@ export class BiomeBackground {
     this.particleStates.forEach((_state, index) => {
       const color = particleColor.clone().lerp(highlightColor, (index % 7) / 7)
       colors.setXYZ(index, color.r, color.g, color.b)
+    })
+    colors.needsUpdate = true
+  }
+
+  private applyVersusPalette(types: VersusBiomeTypes): void {
+    const { opponent, player } = resolveVersusBiomePalette(types)
+    this.scene.background = new THREE.Color(player.backgroundBottom)
+    const colors = this.particles.geometry.getAttribute('color') as THREE.BufferAttribute
+
+    this.particleStates.forEach((state, index) => {
+      const horizontalPosition = state.x / 1.9
+      const verticalPosition = state.y / 1.6
+      const playerMix = THREE.MathUtils.smoothstep(
+        -horizontalPosition - verticalPosition,
+        -0.2,
+        0.12,
+      )
+      const highlightMix = (index % 7) / 7
+      const opponentColor = new THREE.Color(opponent.particle).lerp(
+        new THREE.Color(opponent.particleHighlight),
+        highlightMix,
+      )
+      const playerColor = new THREE.Color(player.particle).lerp(
+        new THREE.Color(player.particleHighlight),
+        highlightMix,
+      )
+      opponentColor.lerp(playerColor, playerMix)
+      colors.setXYZ(index, opponentColor.r, opponentColor.g, opponentColor.b)
     })
     colors.needsUpdate = true
   }

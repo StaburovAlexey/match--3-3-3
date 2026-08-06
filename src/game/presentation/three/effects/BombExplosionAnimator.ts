@@ -26,6 +26,7 @@ export class BombExplosionAnimator {
   private readonly sparks: SparkBurstAnimator
   private readonly config: BombExplosionConfig
   private readonly glowTexture: THREE.CanvasTexture
+  private readonly onExplosion: (() => void) | undefined
   private readonly activeTimelines = new Map<gsap.core.Timeline, Set<BombExplosionVisual>>()
 
   constructor(
@@ -33,11 +34,13 @@ export class BombExplosionAnimator {
     board: CubeBoardView,
     sparks: SparkBurstAnimator,
     config: BombExplosionConfig = createBombExplosionConfig(),
+    onExplosion?: () => void,
   ) {
     this.scene = scene
     this.board = board
     this.sparks = sparks
     this.config = config
+    this.onExplosion = onExplosion
     this.glowTexture = createRadialGlowTexture()
   }
 
@@ -189,6 +192,7 @@ export class BombExplosionAnimator {
   ): void {
     timeline.call(
       () => {
+        this.onExplosion?.()
         visual.flash.visible = true
         visual.flashMaterial.opacity = this.config.flashOpacity
         visual.rings.forEach((ring) => {

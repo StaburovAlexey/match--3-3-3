@@ -1,4 +1,4 @@
-import type { BoardPiece, MatchResolution } from '../model/Board.ts'
+import type { BoardPiece, DestroyedCube, MatchResolution } from '../model/Board.ts'
 import { MatchFinder } from './MatchFinder.ts'
 import { SpecialEffectResolver } from './SpecialEffectResolver.ts'
 
@@ -16,13 +16,15 @@ export class MatchResolver {
     const createdSpecials = groups.flatMap((group) =>
       group.createdSpecial ? [group.createdSpecial] : [],
     )
-    const preserved = new Set(createdSpecials.map(({ piece }) => piece))
-    const cleared = new Set<BoardPiece>()
+    const preservedIds = new Set(createdSpecials.map(({ piece }) => piece.id))
+    const destroyedByPieceId = new Map<string, DestroyedCube>()
     groups.forEach((group) => {
       group.pieces.forEach((piece) => {
-        if (!preserved.has(piece)) cleared.add(piece)
+        if (!preservedIds.has(piece.id) && !destroyedByPieceId.has(piece.id)) {
+          destroyedByPieceId.set(piece.id, { piece, elementType: piece.elementType })
+        }
       })
     })
-    return { groups, clearedPieces: Array.from(cleared), createdSpecials }
+    return { groups, destroyedCubes: Array.from(destroyedByPieceId.values()), createdSpecials }
   }
 }

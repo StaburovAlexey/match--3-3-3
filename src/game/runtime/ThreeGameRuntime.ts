@@ -24,7 +24,17 @@ import { CubeStarEmitter } from '../presentation/three/effects/CubeStarEmitter.t
 import { CubeRaycaster } from '../presentation/three/input/CubeRaycaster.ts'
 import { resolveCrackRenderMode } from '../presentation/three/materials/CrackRenderMode.ts'
 import { BiomeBackground } from '../presentation/three/biome/BiomeBackground.ts'
+import type { VersusBiomeTypes } from '../presentation/three/biome/BiomePalette.ts'
 import { ThreeScene } from '../presentation/three/scene/ThreeScene.ts'
+import type { GameTurnResolution } from '../core/flow/GameController.ts'
+import type {
+  HudShakeReason,
+  NdcPoint,
+  PlayerRewardDestination,
+  ResolvePlayerRewardTarget,
+  RewardHit,
+  ScreenPoint,
+} from '../core/model/RewardTarget.ts'
 
 export interface GameRuntimeErrorEvent {
   context: string
@@ -32,7 +42,14 @@ export interface GameRuntimeErrorEvent {
 }
 
 export interface ThreeGameRuntimeOptions {
+  versusBackground?: VersusBiomeTypes
   reportError?: (event: GameRuntimeErrorEvent) => void
+  onTurnResolved?: (event: GameTurnResolution) => void
+  resolvePlayerRewardTarget?: ResolvePlayerRewardTarget
+  onRewardBatchStarted?: (hitCount: number) => void
+  onRewardHit?: (event: RewardHit) => void
+  onMatchMultiplierChanged?: (multiplier: number) => void
+  onHudShake?: (reason: HudShakeReason) => void
 }
 
 export class ThreeGameRuntime {
@@ -58,15 +75,40 @@ export class ThreeGameRuntime {
 
     this.scene = new ThreeScene(container)
     this.biomeType = new RandomBiomeSource().next()
-    this.biomeBackground = new BiomeBackground(this.scene.scene, this.scene.camera, this.biomeType)
+    this.biomeBackground = new BiomeBackground(
+      this.scene.scene,
+      this.scene.camera,
+      this.biomeType,
+      options.versusBackground,
+    )
     this.board = new CubeBoardView(grid.items, resolveCrackRenderMode(window.location.search))
     this.scene.scene.add(this.board.object)
     this.stars = new CubeStarEmitter(this.scene.scene)
+    const resolvePlayerRewardTarget = options.resolvePlayerRewardTarget
+    const resolveTargetNdc = resolvePlayerRewardTarget
+      ? (destination: PlayerRewardDestination): NdcPoint | null => {
+          const screenPoint: ScreenPoint | null = resolvePlayerRewardTarget(destination)
+          const canvasRect = this.scene.renderer.domElement.getBoundingClientRect()
+          if (!screenPoint || !canvasRect.width || !canvasRect.height) return null
+
+          return {
+            x: ((screenPoint.x - canvasRect.left) / canvasRect.width) * 2 - 1,
+            y: -((screenPoint.y - canvasRect.top) / canvasRect.height) * 2 + 1,
+          }
+        }
+      : undefined
     this.presentation = new ThreeGamePresentation(
       this.board,
       this.stars,
       this.scene.scene,
       this.scene.camera,
+      {
+        resolveTargetNdc,
+        onRewardBatchStarted: options.onRewardBatchStarted,
+        onRewardHit: options.onRewardHit,
+        onMatchMultiplierChanged: options.onMatchMultiplierChanged,
+        onHudShake: options.onHudShake,
+      },
     )
     this.controller = new GameController(
       grid,
@@ -76,6 +118,7 @@ export class ThreeGameRuntime {
       new PlayableBoardGenerator(grid, validator, elements),
       this.presentation,
       this.reportError,
+      { onTurnResolved: options.onTurnResolved },
     )
     this.raycaster = new CubeRaycaster(
       this.scene.renderer,
@@ -115,6 +158,10 @@ export class ThreeGameRuntime {
 
   confirmAbility(): Promise<AbilityConfirmResult> {
     return this.controller.confirmAbility()
+  }
+
+  setInputEnabled(enabled: boolean): void {
+    this.raycaster.setEnabled(enabled)
   }
 
   get abilityState(): AbilityInteractionState {

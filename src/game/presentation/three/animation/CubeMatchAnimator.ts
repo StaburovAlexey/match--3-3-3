@@ -2,10 +2,12 @@ import { gsap } from 'gsap'
 import type { AnimationResult } from '../../../core/flow/GamePresentation.ts'
 import type {
   BoardPiece,
+  DestroyedCube,
   MatchEffect,
   MatchGroup,
   MatchResolution,
 } from '../../../core/model/Board.ts'
+import { getPlayerCubeReward, type PlayerCubeReward } from '../../../core/model/RewardTarget.ts'
 import type { CubeBoardView } from '../board/CubeBoardView.ts'
 import { BombExplosionAnimator } from '../effects/BombExplosionAnimator.ts'
 import {
@@ -17,6 +19,11 @@ import { SparkBurstAnimator } from '../effects/SparkBurstAnimator.ts'
 import { SpecialClearAnimator } from './SpecialClearAnimator.ts'
 import { SpecialIdleAnimator } from './SpecialIdleAnimator.ts'
 import { TimelineScope } from './TimelineScope.ts'
+
+type ScheduledCubeClearGlowEntry = Omit<CubeClearGlowEntry, 'start' | 'reward'> & {
+  start: number
+  reward: PlayerCubeReward
+}
 
 export class CubeMatchAnimator {
   private readonly scope = new TimelineScope()
@@ -48,11 +55,13 @@ export class CubeMatchAnimator {
     this.clearGlow = clearGlow
   }
 
-  play(resolution: MatchResolution): Promise<AnimationResult> {
+  play(resolution: MatchResolution, rewardMultiplier = 1): Promise<AnimationResult> {
     const timeline = gsap.timeline({ paused: true })
-    const claimed = new Set<BoardPiece>()
-    const clearedIds = new Set(resolution.clearedPieces.map(({ id }) => id))
-    const glowStarts = new Map<string, Required<CubeClearGlowEntry>>()
+    const claimedIds = new Set<string>()
+    const destroyedByPieceId = new Map(
+      resolution.destroyedCubes.map((destroyedCube) => [destroyedCube.piece.id, destroyedCube]),
+    )
+    const glowStarts = new Map<string, ScheduledCubeClearGlowEntry>()
     const specialGroupCubes = new Set<ReturnType<CubeBoardView['getCube']>>()
     const specialClearedCubes = new Set(
       resolution.groups
@@ -64,8 +73,8 @@ export class CubeMatchAnimator {
 
     resolution.groups.forEach((group) => {
       const groupPieces = group.pieces.filter((piece) => {
-        if (claimed.has(piece)) return false
-        claimed.add(piece)
+        if (claimedIds.has(piece.id)) return false
+        claimedIds.add(piece.id)
         return true
       })
       if (groupPieces.length === 0) return
@@ -77,31 +86,37 @@ export class CubeMatchAnimator {
               group,
               groupPieces,
               specialGroupCubes,
-              clearedIds,
+              destroyedByPieceId,
               glowStarts,
+              rewardMultiplier,
             )
-          : this.createSequentialTimeline(group, groupPieces, clearedIds, glowStarts)
+          : this.createSequentialTimeline(
+              group,
+              groupPieces,
+              destroyedByPieceId,
+              glowStarts,
+              rewardMultiplier,
+            )
       timeline.add(groupTimeline, 0)
     })
 
-    resolution.clearedPieces.forEach((piece) => {
-      if (!glowStarts.has(piece.id)) {
-        glowStarts.set(piece.id, { piece, start: this.growDuration })
+    resolution.destroyedCubes.forEach((destroyedCube) => {
+      if (!glowStarts.has(destroyedCube.piece.id)) {
+        glowStarts.set(destroyedCube.piece.id, {
+          piece: destroyedCube.piece,
+          start: this.growDuration,
+          reward: getPlayerCubeReward(destroyedCube.elementType, rewardMultiplier),
+        })
       }
     })
-    timeline.call(
-      () => {
-        this.clearGlow.createTimeline(Array.from(glowStarts.values()))
-      },
-      [],
-      0,
-    )
+    const glowEntries = Array.from(glowStarts.values())
+    timeline.call(() => this.clearGlow.createTimeline(glowEntries), [], 0)
 
     const result = this.scope.play(timeline)
     return result.then((status) => {
       this.specialClear.finish(Array.from(specialGroupCubes))
       if (status === 'completed') {
-        resolution.clearedPieces.forEach((piece) => {
+        resolution.destroyedCubes.forEach(({ piece }) => {
           const cube = this.board.getCube(piece)
           cube.visible = false
           cube.scale.setScalar(0)
@@ -128,8 +143,9 @@ export class CubeMatchAnimator {
   private createSequentialTimeline(
     group: MatchGroup,
     pieces: readonly BoardPiece[],
-    clearedIds: ReadonlySet<string>,
-    glowStarts: Map<string, Required<CubeClearGlowEntry>>,
+    destroyedByPieceId: ReadonlyMap<string, DestroyedCube>,
+    glowStarts: Map<string, ScheduledCubeClearGlowEntry>,
+    rewardMultiplier: number,
   ): gsap.core.Timeline {
     const timeline = gsap.timeline()
 
@@ -167,8 +183,9 @@ export class CubeMatchAnimator {
       }
 
       const start = index * this.staggerDuration
-      if (clearedIds.has(piece.id)) {
-        this.setGlowStart(glowStarts, piece, start + this.growDuration)
+      const destroyedCube = destroyedByPieceId.get(piece.id)
+      if (destroyedCube) {
+        this.setGlowStart(glowStarts, destroyedCube, start + this.growDuration, rewardMultiplier)
       }
       timeline
         .to(
@@ -202,8 +219,9 @@ export class CubeMatchAnimator {
     group: MatchGroup,
     pieces: readonly BoardPiece[],
     cubes: Set<ReturnType<CubeBoardView['getCube']>>,
-    clearedIds: ReadonlySet<string>,
-    glowStarts: Map<string, Required<CubeClearGlowEntry>>,
+    destroyedByPieceId: ReadonlyMap<string, DestroyedCube>,
+    glowStarts: Map<string, ScheduledCubeClearGlowEntry>,
+    rewardMultiplier: number,
   ): gsap.core.Timeline {
     const groupCubes = pieces.map((piece) => this.board.getCube(piece))
     groupCubes.forEach((cube) => cubes.add(cube))
@@ -212,11 +230,13 @@ export class CubeMatchAnimator {
     const schedule = this.createSpecialSchedule(effects, pieces)
     const bombEffects = effects.filter((effect) => effect.type === 'bomb')
     pieces.forEach((piece) => {
-      if (!clearedIds.has(piece.id)) return
+      const destroyedCube = destroyedByPieceId.get(piece.id)
+      if (!destroyedCube) return
       this.setGlowStart(
         glowStarts,
-        piece,
+        destroyedCube,
         (schedule.clearStarts.get(piece.id) ?? 0) + this.specialClear.peakTime,
+        rewardMultiplier,
       )
     })
     timeline.add(this.lightning.createTimeline(schedule.lightning), 0)
@@ -332,12 +352,20 @@ export class CubeMatchAnimator {
   }
 
   private setGlowStart(
-    target: Map<string, Required<CubeClearGlowEntry>>,
-    piece: BoardPiece,
+    target: Map<string, ScheduledCubeClearGlowEntry>,
+    destroyedCube: DestroyedCube,
     start: number,
+    rewardMultiplier: number,
   ): void {
+    const { piece } = destroyedCube
     const current = target.get(piece.id)
-    if (!current || start < current.start) target.set(piece.id, { piece, start })
+    if (!current || start < current.start) {
+      target.set(piece.id, {
+        piece,
+        start,
+        reward: getPlayerCubeReward(destroyedCube.elementType, rewardMultiplier),
+      })
+    }
   }
 
   private getActivatedSpecials(group: MatchGroup): BoardPiece[] {

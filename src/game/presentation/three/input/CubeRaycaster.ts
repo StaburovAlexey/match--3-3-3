@@ -11,6 +11,7 @@ export class CubeRaycaster {
   private pointerId: number | null = null
   private activePointers = 0
   private multiTouch = false
+  private enabled = true
   private static readonly clickDistance = 5
 
   constructor(
@@ -28,7 +29,16 @@ export class CubeRaycaster {
     this.renderer.domElement.addEventListener('pointercancel', this.handlePointerCancel)
   }
 
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled
+    if (!enabled) {
+      this.pointerId = null
+      this.multiTouch = false
+    }
+  }
+
   private readonly handlePointerDown = (event: PointerEvent): void => {
+    if (!this.enabled) return
     this.activePointers += 1
 
     if (this.activePointers > 1) {
@@ -43,6 +53,7 @@ export class CubeRaycaster {
   }
 
   private readonly handlePointerUp = (event: PointerEvent): void => {
+    if (!this.enabled) return
     this.activePointers = Math.max(0, this.activePointers - 1)
 
     if (event.pointerId !== this.pointerId) return

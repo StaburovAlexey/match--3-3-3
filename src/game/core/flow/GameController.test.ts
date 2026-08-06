@@ -11,7 +11,7 @@ import type { AbilityPlan } from '../ability/AbilityPlanner.ts'
 import type { AbilityEffect } from '../ability/AbilityCommand.ts'
 import type { BoardItem } from '../model/Board.ts'
 import type { GamePresentation } from './GamePresentation.ts'
-import { GameController } from './GameController.ts'
+import { GameController, type GameTurnResolution } from './GameController.ts'
 
 let abilitySequence = 0
 
@@ -28,6 +28,118 @@ function beginAbility(controller: GameController, effect: AbilityEffect): void {
 }
 
 describe('GameController', () => {
+  it('keeps destroyed element snapshots after refill and across a reused-piece cascade', async () => {
+    const items: BoardItem[] = [
+      {
+        piece: { id: 'fire-0', elementType: 'fire', special: null, active: true },
+        position: { x: 0, y: 0, z: 0 },
+      },
+      {
+        piece: { id: 'earth', elementType: 'earth', special: null, active: true },
+        position: { x: 1, y: 0, z: 0 },
+      },
+      {
+        piece: { id: 'fire-1', elementType: 'fire', special: null, active: true },
+        position: { x: 2, y: 0, z: 0 },
+      },
+      {
+        piece: { id: 'fire-2', elementType: 'fire', special: null, active: true },
+        position: { x: 3, y: 0, z: 0 },
+      },
+    ]
+    const grid = new BoardGrid(items)
+    const validator = new MatchValidator(grid)
+    vi.spyOn(validator, 'canSwap').mockReturnValue(true)
+    vi.spyOn(validator, 'hasAvailableSwap').mockReturnValue(true)
+    const elements = new RandomElementSource(() => 0)
+    let refillNumber = 0
+    const refill = {
+      createPlan: vi.fn(() => {
+        refillNumber += 1
+        const pieces = grid.allPieces.filter((piece) => !piece.active)
+        const finalTypes = ['earth', 'light', 'dark'] as const
+        const spawns = pieces.map((piece, index) => {
+          const position = grid.getPosition(piece)
+          if (!position) throw new Error(`Missing position for ${piece.id}`)
+          return {
+            piece,
+            from: { ...position, y: position.y + 1 },
+            to: position,
+            elementType: refillNumber === 1 ? ('ice' as const) : finalTypes[index % 3],
+          }
+        })
+        return {
+          moves: [],
+          spawns,
+          assignments: spawns.map(({ piece, to }) => ({ piece, position: to })),
+          affectedPieces: refillNumber === 1 ? pieces : [],
+        }
+      }),
+    } as unknown as BoardRefillPlanner
+    const completed = async () => 'completed' as const
+    const presentation: GamePresentation = {
+      spawn: vi.fn(completed),
+      select: vi.fn(),
+      deselect: vi.fn(),
+      animateRejectedSwap: vi.fn(completed),
+      animateSwap: vi.fn(completed),
+      animateMatches: vi.fn(completed),
+      animateRefill: vi.fn(completed),
+      previewAbility: vi.fn(completed),
+      clearAbilityPreview: vi.fn(),
+      animateAbility: vi.fn(completed),
+      hideForRebuild: vi.fn(completed),
+      showAfterRebuild: vi.fn(completed),
+      syncPieces: vi.fn(),
+    }
+    const onTurnResolved = vi.fn<(event: GameTurnResolution) => void>()
+    const controller = new GameController(
+      grid,
+      validator,
+      new MatchResolver(new MatchFinder(grid), new SpecialEffectResolver(grid)),
+      refill,
+      new PlayableBoardGenerator(grid, validator, elements, 0),
+      presentation,
+      () => undefined,
+      { onTurnResolved },
+    )
+
+    await controller.start()
+    await controller.handlePieceClick('fire-0')
+    await controller.handlePieceClick('earth')
+
+    expect(onTurnResolved).toHaveBeenCalledOnce()
+    const event = onTurnResolved.mock.calls[0]?.[0]
+    expect(event?.type).toBe('board')
+    if (!event || event.type !== 'board') throw new Error('Expected board turn resolution')
+    expect(event.resolutions).toHaveLength(2)
+    expect(event.rewardMultipliers).toEqual([1, 2])
+    expect(
+      vi
+        .mocked(presentation.animateMatches)
+        .mock.calls.map(([, options]) => options.rewardMultiplier),
+    ).toEqual([1, 2])
+    const [fireResolution, iceResolution] = event.resolutions
+    expect(fireResolution.destroyedCubes.map(({ elementType }) => elementType)).toEqual([
+      'fire',
+      'fire',
+      'fire',
+    ])
+    expect(iceResolution.destroyedCubes.map(({ elementType }) => elementType)).toEqual([
+      'ice',
+      'ice',
+      'ice',
+    ])
+    expect(fireResolution.destroyedCubes.map(({ piece }) => piece.id)).toEqual(
+      iceResolution.destroyedCubes.map(({ piece }) => piece.id),
+    )
+    expect(fireResolution.destroyedCubes.map(({ piece }) => piece.elementType)).toEqual([
+      'earth',
+      'light',
+      'dark',
+    ])
+  })
+
   it('при rebuild не запускает поиск и анимацию match', async () => {
     const items: BoardItem[] = Array.from({ length: 4 }, (_, x) => ({
       piece: {
