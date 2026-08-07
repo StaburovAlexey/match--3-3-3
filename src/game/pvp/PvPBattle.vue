@@ -11,6 +11,7 @@ import type { CombatantDefinition, PvPBattleConfig } from './core/PvPBattleTypes
 import { usePvPBattle } from './composables/usePvPBattle.ts'
 import PvPBattleHud from './components/PvPBattleHud.vue'
 import PvPBoardScene from './components/PvPBoardScene.vue'
+import ScreenCrackOverlay from './components/ScreenCrackOverlay.vue'
 import { createOpponentRoundPlans } from './data/OpponentRoundPlans.ts'
 
 const props = defineProps<{
@@ -118,6 +119,11 @@ function exitBattle(): void {
       @match-multiplier-changed="handleMatchMultiplierChanged"
       @hud-shake="handleHudShake"
       @runtime-error="handleRuntimeError"
+    />
+    <ScreenCrackOverlay
+      :pulse-id="battle.hudShakePulseId.value"
+      :reason="battle.hudShakeReason.value"
+      :multiplier="battle.matchMultiplier.value"
     />
     <PvPBattleHud
       ref="hud"

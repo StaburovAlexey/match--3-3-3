@@ -21,6 +21,7 @@ const searchParams = new URLSearchParams(window.location.search)
 const isLightningLab = searchParams.has('lightning-lab')
 const isBombLab = searchParams.has('bomb-lab')
 const isClearGlowLab = searchParams.has('clear-glow-lab')
+const isHudEffectsLab = searchParams.has('hud-effects-lab')
 const isDev = import.meta.env.DEV
 const initialMode = searchParams.has('pvp')
   ? 'pvp'
@@ -41,6 +42,7 @@ const BombExplosionLab = defineAsyncComponent(
 const CubeClearGlowLab = defineAsyncComponent(
   () => import('./game/gui/components/CubeClearGlowLab.vue'),
 )
+const HudEffectsLab = defineAsyncComponent(() => import('./game/gui/components/HudEffectsLab.vue'))
 
 interface CharacterAbilityViewModel {
   id: string
@@ -130,7 +132,8 @@ function handleRuntimeError(event: GameRuntimeErrorEvent): void {
 </script>
 
 <template>
-  <CubeClearGlowLab v-if="isClearGlowLab" />
+  <HudEffectsLab v-if="isHudEffectsLab" />
+  <CubeClearGlowLab v-else-if="isClearGlowLab" />
   <BombExplosionLab v-else-if="isBombLab" />
   <LightningLab v-else-if="isLightningLab" />
   <GameModeSelect

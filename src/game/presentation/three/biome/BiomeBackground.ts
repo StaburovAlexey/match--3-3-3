@@ -25,7 +25,7 @@ interface BackgroundFrame {
   visibleHeight: number
 }
 
-const particleCount = 48
+const particleCount = 64
 
 export class BiomeBackground {
   private readonly scene: THREE.Scene
@@ -40,6 +40,11 @@ export class BiomeBackground {
   private readonly worldParticlePosition = new THREE.Vector3()
   private readonly cameraDirection = new THREE.Vector3()
   private readonly cameraRotation = new THREE.Quaternion()
+  private readonly lastCameraPosition = new THREE.Vector3()
+  private readonly lastCameraRotation = new THREE.Quaternion()
+  private lastCameraAspect = 0
+  private lastCameraFov = 0
+  private hasCameraFrame = false
   private readonly backgroundFrame: BackgroundFrame = {
     origin: new THREE.Vector3(),
     right: new THREE.Vector3(),
@@ -312,6 +317,21 @@ export class BiomeBackground {
   }
 
   private updateBackgroundFrame(): BackgroundFrame {
+    const cameraFrameChanged =
+      !this.hasCameraFrame ||
+      !this.camera.position.equals(this.lastCameraPosition) ||
+      !this.camera.quaternion.equals(this.lastCameraRotation) ||
+      this.camera.aspect !== this.lastCameraAspect ||
+      this.camera.fov !== this.lastCameraFov
+
+    if (!cameraFrameChanged) return this.backgroundFrame
+
+    this.lastCameraPosition.copy(this.camera.position)
+    this.lastCameraRotation.copy(this.camera.quaternion)
+    this.lastCameraAspect = this.camera.aspect
+    this.lastCameraFov = this.camera.fov
+    this.hasCameraFrame = true
+
     const distance = this.camera.position.length() + 1.5
     this.camera.getWorldDirection(this.cameraDirection)
     this.camera.getWorldQuaternion(this.cameraRotation)

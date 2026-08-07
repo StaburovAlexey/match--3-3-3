@@ -35,6 +35,14 @@ const emit = defineEmits<{
           <span class="game-mode-select__button-title">DEV · Выбор героев</span>
           <span class="game-mode-select__button-caption">Настроить игрока и противника</span>
         </button>
+        <a
+          v-if="isDev"
+          class="game-mode-select__button game-mode-select__button--dev"
+          href="?hud-effects-lab"
+        >
+          <span class="game-mode-select__button-title">DEV · HUD Effects Lab</span>
+          <span class="game-mode-select__button-caption">Тряска, bomb и экранные трещины</span>
+        </a>
       </div>
     </section>
   </main>
@@ -95,6 +103,7 @@ const emit = defineEmits<{
   background: rgb(35 62 17 / 85%);
   cursor: pointer;
   text-align: left;
+  text-decoration: none;
 }
 
 .game-mode-select__button--pvp {

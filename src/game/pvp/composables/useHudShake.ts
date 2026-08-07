@@ -9,6 +9,7 @@ import {
   type Ref,
 } from 'vue'
 import type { HudShakeReason } from '../../core/model/RewardTarget.ts'
+import { createHudShakeStyle, getHudShakeScale } from '../config/HudEffectsConfig.ts'
 
 interface HudShakeContext {
   pulseId: Ref<number>
@@ -26,11 +27,6 @@ export function provideHudShake(
   provide(hudShakeContextKey, { pulseId, reason, multiplier })
 }
 
-function randomSigned(min: number, max: number): number {
-  const magnitude = min + Math.random() * (max - min)
-  return Math.random() < 0.5 ? -magnitude : magnitude
-}
-
 export function useHudShake() {
   const context = inject(hudShakeContextKey, null)
   const targetRef = shallowRef<HTMLElement | null>(null)
@@ -43,22 +39,12 @@ export function useHudShake() {
 
   if (context) {
     watch(context.pulseId, () => {
-      const isBomb = context.reason.value === 'bomb'
-      const multiplier = Math.min(5, Math.max(1, Math.floor(context.multiplier.value)))
-      if (!isBomb && multiplier <= 1) {
+      const scale = getHudShakeScale(context.reason.value, context.multiplier.value)
+      if (scale === null) {
         isShaking.value = false
         return
       }
-      const cascadeProgress = (multiplier - 1) / 4
-      const cascadeScale = 0.85 + cascadeProgress * 0.65
-      const scale = cascadeScale * (isBomb ? 1.45 : 1)
-      style.value = {
-        '--pvp-hud-shake-x': `${randomSigned(1.5, 3.5) * scale}px`,
-        '--pvp-hud-shake-y': `${randomSigned(1.5, 3.5) * scale}px`,
-        '--pvp-hud-shake-angle': `${randomSigned(0.35, 0.9) * scale}deg`,
-        '--pvp-hud-shake-duration': `${(220 + Math.random() * 100) * scale}ms`,
-        '--pvp-hud-shake-delay': `${Math.random() * 45}ms`,
-      }
+      style.value = createHudShakeStyle(scale)
       isShaking.value = false
       void nextTick(() => {
         const target = targetRef.value
