@@ -79,6 +79,24 @@ describe('PvPBattleController', () => {
     expect(state.opponent.hp).toBe(1000)
   })
 
+  it('starts the next round only after an explicit continue action', () => {
+    const controller = new PvPBattleController(createConfig())
+    controller.start()
+
+    for (let turn = 0; turn < 7; turn += 1) controller.recordBoardTurn([])
+
+    expect(controller.currentState.phase).toBe('round-result')
+    expect(controller.currentState.round).toBe(1)
+    expect(controller.currentState.lastResolution).not.toBeNull()
+
+    controller.continueAfterRound()
+
+    expect(controller.currentState.phase).toBe('player-turn')
+    expect(controller.currentState.round).toBe(2)
+    expect(controller.currentState.turn).toBe(0)
+    expect(controller.currentState.lastResolution).toBeNull()
+  })
+
   it('keeps earned energy, charges an ability, and spends one turn', () => {
     const controller = new PvPBattleController(createConfig())
     const darkPieces = Array.from({ length: 20 }, (_, index) => ({

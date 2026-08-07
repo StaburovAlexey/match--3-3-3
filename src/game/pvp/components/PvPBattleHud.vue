@@ -24,6 +24,10 @@ const props = defineProps<{
   matchMultiplierPulseId: number
   hudShakePulseId: number
   hudShakeReason: HudShakeReason
+  roundBattleActive?: boolean
+  roundBattleFinished?: boolean
+  roundBattleHp?: { player: number; opponent: number } | null
+  roundBattleResources?: { player: RoundResources; opponent: RoundResources } | null
 }>()
 
 const emit = defineEmits<{
@@ -61,8 +65,19 @@ defineExpose({ resolvePlayerRewardTarget })
 </script>
 
 <template>
-  <div ref="hudRoot" class="pvp-battle-hud">
-    <CombatantPanel :combatant="props.state.opponent" side="opponent" :disabled="true" />
+  <div
+    ref="hudRoot"
+    class="pvp-battle-hud"
+    :class="{ 'pvp-battle-hud--round-battle': props.roundBattleActive }"
+  >
+    <CombatantPanel
+      :combatant="props.state.opponent"
+      :display-hp="props.roundBattleHp?.opponent"
+      :display-resources="props.roundBattleResources?.opponent ?? props.state.opponent.resources"
+      :display-energy="props.roundBattleResources?.opponent?.abilityEnergy"
+      side="opponent"
+      :disabled="true"
+    />
 
     <div class="pvp-battle-hud__center">
       <MatchComboBanner
@@ -112,7 +127,7 @@ defineExpose({ resolvePlayerRewardTarget })
       </div>
 
       <button
-        v-if="props.state.phase === 'round-result'"
+        v-if="props.state.phase === 'round-result' && props.roundBattleFinished"
         :ref="roundActionShake.setTarget"
         class="pvp-battle-hud__next pvp-hud-shake-target"
         :class="{ 'pvp-hud-shake-target--active': roundActionShake.isShaking.value }"
@@ -123,7 +138,7 @@ defineExpose({ resolvePlayerRewardTarget })
         Продолжить
       </button>
       <button
-        v-if="props.state.phase === 'finished'"
+        v-if="props.state.phase === 'finished' && props.roundBattleFinished"
         :ref="roundActionShake.setTarget"
         class="pvp-battle-hud__next pvp-hud-shake-target"
         :class="{ 'pvp-hud-shake-target--active': roundActionShake.isShaking.value }"
@@ -140,8 +155,9 @@ defineExpose({ resolvePlayerRewardTarget })
       side="player"
       :interactive="props.playerInputEnabled"
       :disabled="!props.playerInputEnabled || props.abilityState.phase !== 'idle'"
-      :display-resources="props.displayResources"
-      :display-energy="props.displayEnergy"
+      :display-resources="props.roundBattleResources?.player ?? props.displayResources"
+      :display-energy="props.roundBattleResources?.player?.abilityEnergy ?? props.displayEnergy"
+      :display-hp="props.roundBattleHp?.player"
       :reward-pulse="props.rewardPulse"
       @ability-select="emit('abilitySelect', $event)"
     />
@@ -151,7 +167,7 @@ defineExpose({ resolvePlayerRewardTarget })
 <style scoped>
 .pvp-battle-hud {
   position: relative;
-  z-index: 5;
+  z-index: 6;
   display: flex;
   width: min(100%, 72rem);
   height: 100%;
@@ -164,6 +180,39 @@ defineExpose({ resolvePlayerRewardTarget })
 
 .pvp-battle-hud > * {
   pointer-events: auto;
+}
+
+.pvp-battle-hud :deep(.combatant-panel__portrait-zone) {
+  transition:
+    width 620ms cubic-bezier(0.22, 0.76, 0.28, 1),
+    max-width 620ms cubic-bezier(0.22, 0.76, 0.28, 1),
+    opacity 420ms ease,
+    transform 620ms cubic-bezier(0.22, 0.76, 0.28, 1);
+}
+
+.pvp-battle-hud :deep(.combatant-panel__content) {
+  transition:
+    flex-basis 620ms cubic-bezier(0.22, 0.76, 0.28, 1),
+    padding-inline 620ms cubic-bezier(0.22, 0.76, 0.28, 1);
+}
+
+.pvp-battle-hud--round-battle :deep(.combatant-panel__portrait-zone) {
+  width: 0;
+  max-width: 0;
+  min-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pvp-battle-hud--round-battle :deep(.combatant-panel__content) {
+  width: 100%;
+  flex: 1 1 100%;
+  padding-inline: 0;
+}
+
+.pvp-battle-hud--round-battle :deep(.combatant-stats) {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .pvp-battle-hud__center {

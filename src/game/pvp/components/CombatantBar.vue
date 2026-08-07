@@ -17,7 +17,7 @@ const fillWidth = computed(
 )
 const icon = computed(() => (props.variant === 'hp' ? '♥' : '◉'))
 const label = computed(() => (props.variant === 'hp' ? 'Здоровье' : 'Очки способностей'))
-const ariaValue = computed(() => Math.max(0, Math.min(props.max, props.value)))
+const displayedValue = computed(() => Math.round(Math.max(0, Math.min(props.max, props.value))))
 const pulseClass = computed(() => {
   if (props.variant !== 'energy' || props.pulseId === null) return undefined
   return props.pulseId % 2 === 0
@@ -41,10 +41,12 @@ const hudShake = useHudShake()
     :aria-label="label"
     aria-valuemin="0"
     :aria-valuemax="props.max"
-    :aria-valuenow="ariaValue"
+    :aria-valuenow="displayedValue"
   >
     <span class="combatant-panel__bar-fill" :style="{ width: fillWidth }" />
-    <span class="combatant-panel__bar-label">{{ icon }} {{ props.value }} / {{ props.max }}</span>
+    <span class="combatant-panel__bar-label"
+      >{{ icon }} {{ displayedValue }} / {{ props.max }}</span
+    >
   </div>
 </template>
 

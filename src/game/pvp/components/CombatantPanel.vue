@@ -11,6 +11,7 @@ const props = withDefaults(
   defineProps<{
     combatant: CombatantState
     side: 'player' | 'opponent'
+    displayHp?: number
     interactive?: boolean
     disabled?: boolean
     displayResources?: RoundResources
@@ -26,6 +27,7 @@ const emit = defineEmits<{
 
 const displayedResources = computed(() => props.displayResources ?? props.combatant.resources)
 const displayedEnergy = computed(() => props.displayEnergy ?? props.combatant.energy)
+const displayedHp = computed(() => props.displayHp ?? props.combatant.hp)
 const energyPulseId = computed(() =>
   props.rewardPulse?.resource === 'abilityEnergy' ? props.rewardPulse.id : null,
 )
@@ -34,10 +36,7 @@ const energyPulseId = computed(() =>
 <template>
   <section
     class="combatant-panel"
-    :class="[
-      `combatant-panel--${props.side}`,
-      { 'combatant-panel--defeated': props.combatant.hp <= 0 },
-    ]"
+    :class="[`combatant-panel--${props.side}`, { 'combatant-panel--defeated': displayedHp <= 0 }]"
     :aria-label="props.combatant.name"
   >
     <CombatantPortraitZone
@@ -53,7 +52,7 @@ const energyPulseId = computed(() =>
       <CombatantPanelHeader :name="props.combatant.name" :rating="props.combatant.rating" />
 
       <div class="combatant-panel__bars">
-        <CombatantBar variant="hp" :value="props.combatant.hp" :max="props.combatant.maxHp" />
+        <CombatantBar variant="hp" :value="displayedHp" :max="props.combatant.maxHp" />
         <CombatantBar
           variant="energy"
           :value="displayedEnergy"
