@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { CombatantState } from '../core/PvPBattleTypes.ts'
+import type { CombatantState } from '../../core/PvPBattleTypes.ts'
 import RoundClashEffects from './RoundClashEffects.vue'
-import type { RoundClashEffectMoment } from './RoundClashTimeline.ts'
+import type { RoundClashEffectMoment } from './RoundClashTypes.ts'
 
 const props = defineProps<{
   player: CombatantState

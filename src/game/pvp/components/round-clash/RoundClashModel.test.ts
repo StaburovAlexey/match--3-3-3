@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { roundClashConfig } from './RoundClashConfig.ts'
 import {
   createRoundClashEffectSchedule,
   createRoundClashHealthTrack,
   getRoundClashHealthAtTime,
-  roundClashTimelineConfig,
-} from './RoundClashTimeline.ts'
+} from './RoundClashModel.ts'
 
 function createSeededRandom(seed: number): () => number {
   let state = seed >>> 0
@@ -15,13 +15,13 @@ function createSeededRandom(seed: number): () => number {
   }
 }
 
-describe('RoundClashTimeline', () => {
+describe('RoundClashModel', () => {
   it('creates a varied ordered effect schedule across the whole battle field', () => {
     const effects = createRoundClashEffectSchedule('fire', 'ice', createSeededRandom(42))
     const offsets = effects.map(({ offset }) => offset)
 
-    expect(effects.length).toBeGreaterThanOrEqual(roundClashTimelineConfig.effectCountMin)
-    expect(effects.length).toBeLessThanOrEqual(roundClashTimelineConfig.effectCountMax)
+    expect(effects.length).toBeGreaterThanOrEqual(roundClashConfig.effectCountMin)
+    expect(effects.length).toBeLessThanOrEqual(roundClashConfig.effectCountMax)
     expect(new Set(effects.map(({ kind }) => kind))).toEqual(
       new Set(['lightning', 'explosion', 'flash']),
     )
@@ -30,18 +30,17 @@ describe('RoundClashTimeline', () => {
     expect(
       effects.every(
         ({ offset }) =>
-          offset >= roundClashTimelineConfig.effectStartOffset &&
-          offset <=
-            roundClashTimelineConfig.healthDuration - roundClashTimelineConfig.effectEndPadding,
+          offset >= roundClashConfig.effectStartOffset &&
+          offset <= roundClashConfig.healthDuration - roundClashConfig.effectEndPadding,
       ),
     ).toBe(true)
     expect(
       effects.every(
         ({ xPercent, yPercent }) =>
-          xPercent >= roundClashTimelineConfig.effectXMin &&
-          xPercent <= roundClashTimelineConfig.effectXMax &&
-          yPercent >= roundClashTimelineConfig.effectYMin &&
-          yPercent <= roundClashTimelineConfig.effectYMax,
+          xPercent >= roundClashConfig.effectXMin &&
+          xPercent <= roundClashConfig.effectXMax &&
+          yPercent >= roundClashConfig.effectYMin &&
+          yPercent <= roundClashConfig.effectYMax,
       ),
     ).toBe(true)
     expect(
@@ -93,7 +92,7 @@ describe('RoundClashTimeline', () => {
       startHp: 100,
       damageHp: 75,
       finalHp: 75,
-      damageDuration: roundClashTimelineConfig.healthDuration,
+      damageDuration: roundClashConfig.healthDuration,
       healingDuration: 0,
     })
     expect(getRoundClashHealthAtTime(track, 3.5)).toBe(87.5)

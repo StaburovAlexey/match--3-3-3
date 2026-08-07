@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { CSSProperties } from 'vue'
-import type { RoundClashEffectMoment } from './RoundClashTimeline.ts'
+import type { RoundClashEffectMoment } from './RoundClashTypes.ts'
 
 const props = defineProps<{
   effects: readonly RoundClashEffectMoment[]

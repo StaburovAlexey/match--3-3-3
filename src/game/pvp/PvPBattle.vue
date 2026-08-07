@@ -7,17 +7,13 @@ import type {
   ResolvePlayerRewardTarget,
   RewardHit,
 } from '../core/model/RewardTarget.ts'
-import type {
-  CombatantDefinition,
-  PvPBattleConfig,
-  RoundResolutionResult,
-  RoundResources,
-} from './core/PvPBattleTypes.ts'
+import type { CombatantDefinition, PvPBattleConfig } from './core/PvPBattleTypes.ts'
 import { usePvPBattle } from './composables/usePvPBattle.ts'
 import PvPBattleHud from './components/PvPBattleHud.vue'
 import PvPBoardScene from './components/PvPBoardScene.vue'
-import RoundClashSequence from './components/RoundClashSequence.vue'
-import type { RoundClashHealthProgress } from './components/RoundClashTimeline.ts'
+import { createIdleRoundClashPresentation } from './components/round-clash/RoundClashPresentation.ts'
+import RoundClashSequence from './components/round-clash/RoundClashSequence.vue'
+import type { RoundClashPresentationState } from './components/round-clash/RoundClashTypes.ts'
 import ScreenCrackOverlay from './components/ScreenCrackOverlay.vue'
 import { createOpponentRoundPlans } from './data/OpponentRoundPlans.ts'
 
@@ -50,13 +46,7 @@ const abilityState = shallowRef<AbilityInteractionState>({
   canConfirm: false,
   error: null,
 })
-const roundBattleActive = shallowRef(false)
-const roundBattleFinished = shallowRef(false)
-const roundBattleHp = shallowRef<{ player: number; opponent: number } | null>(null)
-const roundBattleResources = shallowRef<{
-  player: RoundResources
-  opponent: RoundResources
-} | null>(null)
+const roundBattle = shallowRef<RoundClashPresentationState>(createIdleRoundClashPresentation())
 const board = useTemplateRef<{ confirmAbility: () => Promise<void>; cancelAbility: () => void }>(
   'board',
 )
@@ -94,51 +84,8 @@ function handleHudShake(reason: HudShakeReason): void {
   battle.handleHudShake(reason)
 }
 
-function prepareRoundBattle(resolution: RoundResolutionResult): void {
-  roundBattleFinished.value = false
-  roundBattleHp.value = {
-    player: resolution.playerSnapshot.currentHp,
-    opponent: resolution.opponentSnapshot.currentHp,
-  }
-  roundBattleResources.value = {
-    player: {
-      fireDamage: resolution.playerSnapshot.fireDamage,
-      iceDamage: resolution.playerSnapshot.iceDamage,
-      earthDefense: resolution.playerSnapshot.earthDefense,
-      lightDefense: resolution.playerSnapshot.lightDefense,
-      abilityEnergy: resolution.playerSnapshot.abilityEnergy,
-    },
-    opponent: {
-      fireDamage: resolution.opponentSnapshot.fireDamage,
-      iceDamage: resolution.opponentSnapshot.iceDamage,
-      earthDefense: resolution.opponentSnapshot.earthDefense,
-      lightDefense: resolution.opponentSnapshot.lightDefense,
-      abilityEnergy: resolution.opponentSnapshot.abilityEnergy,
-    },
-  }
-}
-
-function handleRoundBattleStarted(): void {
-  roundBattleActive.value = true
-}
-
-function handleRoundBattleHealthProgress(health: RoundClashHealthProgress): void {
-  if (!roundBattleHp.value) return
-  roundBattleHp.value = {
-    player: health.player,
-    opponent: health.opponent,
-  }
-}
-
-function handleRoundBattleFinished(): void {
-  roundBattleFinished.value = true
-}
-
-function handleRoundBattleDismissed(): void {
-  roundBattleActive.value = false
-  roundBattleFinished.value = false
-  roundBattleHp.value = null
-  roundBattleResources.value = null
+function handleRoundBattlePresentationChange(presentation: RoundClashPresentationState): void {
+  roundBattle.value = presentation
 }
 
 function resolvePlayerRewardTarget(...args: Parameters<ResolvePlayerRewardTarget>) {
@@ -190,11 +137,7 @@ function exitBattle(): void {
       :player="battle.state.value.player"
       :opponent="battle.state.value.opponent"
       :resolution="battle.state.value.lastResolution"
-      @prepared="prepareRoundBattle"
-      @started="handleRoundBattleStarted"
-      @health-progress="handleRoundBattleHealthProgress"
-      @finished="handleRoundBattleFinished"
-      @dismissed="handleRoundBattleDismissed"
+      @presentation-change="handleRoundBattlePresentationChange"
     />
     <PvPBattleHud
       ref="hud"
@@ -208,10 +151,7 @@ function exitBattle(): void {
       :match-multiplier-pulse-id="battle.matchMultiplierPulseId.value"
       :hud-shake-pulse-id="battle.hudShakePulseId.value"
       :hud-shake-reason="battle.hudShakeReason.value"
-      :round-battle-active="roundBattleActive"
-      :round-battle-finished="roundBattleFinished"
-      :round-battle-hp="roundBattleHp"
-      :round-battle-resources="roundBattleResources"
+      :round-battle="roundBattle"
       @ability-select="handleAbilitySelect"
       @confirm-ability="confirmAbility"
       @cancel-ability="cancelAbility"

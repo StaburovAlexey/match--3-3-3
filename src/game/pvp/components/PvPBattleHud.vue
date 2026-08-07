@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { toRef, useTemplateRef } from 'vue'
+import { computed, toRef, useTemplateRef } from 'vue'
 import type { AbilityInteractionState } from '../../core/ability/AbilityContract.ts'
 import type {
   HudShakeReason,
@@ -7,11 +7,11 @@ import type {
   RewardPulse,
   ScreenPoint,
 } from '../../core/model/RewardTarget.ts'
-import type { PvPBattleState } from '../core/PvPBattleTypes.ts'
-import type { RoundResources } from '../core/PvPBattleTypes.ts'
+import type { PvPBattleState, RoundResources } from '../core/PvPBattleTypes.ts'
+import { provideHudShake, useHudShake } from '../composables/useHudShake.ts'
+import type { RoundClashPresentationState } from './round-clash/RoundClashTypes.ts'
 import CombatantPanel from './CombatantPanel.vue'
 import MatchComboBanner from './MatchComboBanner.vue'
-import { provideHudShake, useHudShake } from '../composables/useHudShake.ts'
 
 const props = defineProps<{
   state: PvPBattleState
@@ -24,10 +24,7 @@ const props = defineProps<{
   matchMultiplierPulseId: number
   hudShakePulseId: number
   hudShakeReason: HudShakeReason
-  roundBattleActive?: boolean
-  roundBattleFinished?: boolean
-  roundBattleHp?: { player: number; opponent: number } | null
-  roundBattleResources?: { player: RoundResources; opponent: RoundResources } | null
+  roundBattle: RoundClashPresentationState
 }>()
 
 const emit = defineEmits<{
@@ -46,6 +43,10 @@ provideHudShake(
 )
 const abilityControlsShake = useHudShake()
 const roundActionShake = useHudShake()
+const roundBattleActive = computed(
+  () => props.roundBattle.phase === 'battle' || props.roundBattle.phase === 'complete',
+)
+const roundBattleFinished = computed(() => props.roundBattle.phase === 'complete')
 
 function resolvePlayerRewardTarget(
   destination: Parameters<ResolvePlayerRewardTarget>[0],
@@ -68,13 +69,13 @@ defineExpose({ resolvePlayerRewardTarget })
   <div
     ref="hudRoot"
     class="pvp-battle-hud"
-    :class="{ 'pvp-battle-hud--round-battle': props.roundBattleActive }"
+    :class="{ 'pvp-battle-hud--round-battle': roundBattleActive }"
   >
     <CombatantPanel
       :combatant="props.state.opponent"
-      :display-hp="props.roundBattleHp?.opponent"
-      :display-resources="props.roundBattleResources?.opponent ?? props.state.opponent.resources"
-      :display-energy="props.roundBattleResources?.opponent?.abilityEnergy"
+      :display-hp="props.roundBattle.health?.opponent"
+      :display-resources="props.roundBattle.resources?.opponent ?? props.state.opponent.resources"
+      :display-energy="props.roundBattle.resources?.opponent.abilityEnergy"
       side="opponent"
       :disabled="true"
     />
@@ -127,7 +128,7 @@ defineExpose({ resolvePlayerRewardTarget })
       </div>
 
       <button
-        v-if="props.state.phase === 'round-result' && props.roundBattleFinished"
+        v-if="props.state.phase === 'round-result' && roundBattleFinished"
         :ref="roundActionShake.setTarget"
         class="pvp-battle-hud__next pvp-hud-shake-target"
         :class="{ 'pvp-hud-shake-target--active': roundActionShake.isShaking.value }"
@@ -138,7 +139,7 @@ defineExpose({ resolvePlayerRewardTarget })
         Продолжить
       </button>
       <button
-        v-if="props.state.phase === 'finished' && props.roundBattleFinished"
+        v-if="props.state.phase === 'finished' && roundBattleFinished"
         :ref="roundActionShake.setTarget"
         class="pvp-battle-hud__next pvp-hud-shake-target"
         :class="{ 'pvp-hud-shake-target--active': roundActionShake.isShaking.value }"
@@ -155,9 +156,9 @@ defineExpose({ resolvePlayerRewardTarget })
       side="player"
       :interactive="props.playerInputEnabled"
       :disabled="!props.playerInputEnabled || props.abilityState.phase !== 'idle'"
-      :display-resources="props.roundBattleResources?.player ?? props.displayResources"
-      :display-energy="props.roundBattleResources?.player?.abilityEnergy ?? props.displayEnergy"
-      :display-hp="props.roundBattleHp?.player"
+      :display-resources="props.roundBattle.resources?.player ?? props.displayResources"
+      :display-energy="props.roundBattle.resources?.player.abilityEnergy ?? props.displayEnergy"
+      :display-hp="props.roundBattle.health?.player"
       :reward-pulse="props.rewardPulse"
       @ability-select="emit('abilitySelect', $event)"
     />
@@ -174,7 +175,7 @@ defineExpose({ resolvePlayerRewardTarget })
   flex-direction: column;
   justify-content: space-between;
   gap: clamp(0.45rem, 1.6vh, 1.1rem);
-  padding: clamp(0.5rem, 1.6vw, 1.1rem);
+  padding: 0 0.7rem 0.7rem;
   pointer-events: none;
 }
 
