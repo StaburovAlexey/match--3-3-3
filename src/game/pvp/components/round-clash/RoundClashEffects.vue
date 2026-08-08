@@ -78,17 +78,17 @@ function getEffectStyle(effect: RoundClashEffectMoment): CSSProperties {
 }
 
 .round-clash-effect--lightning {
-  width: clamp(8rem, 40vw, 14rem);
-  height: clamp(4rem, 20vw, 7rem);
+  width: clamp(8rem, 40cqw, 14rem);
+  height: clamp(4rem, 20cqw, 7rem);
 }
 
 .round-clash-effect--explosion {
-  width: clamp(4rem, 18vw, 6.5rem);
+  width: clamp(4rem, 18cqw, 6.5rem);
   aspect-ratio: 1;
 }
 
 .round-clash-effect--flash {
-  width: clamp(5rem, 26vw, 10rem);
+  width: clamp(5rem, 26cqw, 10rem);
   aspect-ratio: 1;
   mix-blend-mode: screen;
 }

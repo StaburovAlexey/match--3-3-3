@@ -236,6 +236,7 @@ export interface PvPBattleState {
 export interface PvPBattleConfig {
   maxRounds?: number
   maxTurnsPerRound?: number
+  devToolsEnabled?: boolean
   player: CombatantDefinition
   playerRating: number
   opponent: CombatantDefinition

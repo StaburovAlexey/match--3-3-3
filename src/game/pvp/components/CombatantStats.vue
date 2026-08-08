@@ -50,7 +50,7 @@ const statDefinitions: readonly CombatantStatDefinition[] = [
   gap: 0 0.55rem;
   justify-items: start;
   color: #e8e0ee;
-  font-size: clamp(0.62rem, 1.8vw, 0.85rem);
+  font-size: clamp(0.62rem, 1.8cqw, 0.85rem);
   font-weight: 800;
 }
 </style>

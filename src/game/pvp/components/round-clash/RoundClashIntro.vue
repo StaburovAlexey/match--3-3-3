@@ -10,7 +10,7 @@
   left: 50%;
   margin: 0;
   color: #fff4c2;
-  font-size: clamp(1.35rem, 6vw, 2.5rem);
+  font-size: clamp(1.35rem, 6cqw, 2.5rem);
   font-weight: 950;
   letter-spacing: 0.08em;
   text-align: center;

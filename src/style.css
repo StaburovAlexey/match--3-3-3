@@ -1,7 +1,39 @@
+@font-face {
+  font-family: 'Goldman Sans';
+  src: url('./assets/fonts/goldman-sans/goldmansans-rg.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Goldman Sans';
+  src: url('./assets/fonts/goldman-sans/goldmansans-md.woff') format('woff');
+  font-weight: 500 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Goldman Sans';
+  src: url('./assets/fonts/goldman-sans/goldmansans-bd.woff') format('woff');
+  font-weight: 700 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Goldman Sans';
+  src: url('./assets/fonts/goldman-sans/goldmansans-blk.woff') format('woff');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  font-family: Inter, system-ui, sans-serif;
+  font-family: 'Goldman Sans', Inter, system-ui, sans-serif;
   color: #f4f4f5;
-  background: #111827;
+  background: #05030a;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -12,12 +44,42 @@
 }
 
 html,
-body,
-#app {
+body {
   width: 100%;
-  min-width: 320px;
   height: 100%;
   margin: 0;
+}
+
+body {
+  display: grid;
+  min-width: 0;
+  min-height: 100vh;
+  place-items: center;
+  overflow: hidden;
+  background: #05030a;
+}
+
+#app {
+  position: relative;
+  width: min(100%, 512px);
+  max-width: 512px;
+  height: min(100vh, 912px);
+  max-height: 912px;
+  overflow: hidden;
+  background: #0c0710;
+  container: game / size;
+  isolation: isolate;
+}
+
+@supports (height: 100dvh) {
+  body {
+    height: 100dvh;
+    min-height: 0;
+  }
+
+  #app {
+    height: min(100dvh, 912px);
+  }
 }
 
 button,

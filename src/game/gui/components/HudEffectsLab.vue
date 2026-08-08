@@ -577,7 +577,7 @@ async function copySettings(): Promise<void> {
   cursor: pointer;
 }
 
-@media (max-width: 48rem) {
+@container game (max-width: 48rem) {
   .hud-effects-lab {
     height: auto;
     min-height: 100%;

@@ -110,7 +110,7 @@ onBeforeUnmount(() => {
   --name-width: 56%;
 }
 
-@media (max-width: 720px) {
+@container game (max-width: 720px) {
   .lightning-lab__header {
     top: 42px;
     max-width: calc(100% - 56px);

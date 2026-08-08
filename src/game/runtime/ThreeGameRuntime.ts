@@ -168,6 +168,10 @@ export class ThreeGameRuntime {
     return this.controller.abilityState
   }
 
+  get isBoardIdle(): boolean {
+    return this.controller.phase === 'idle'
+  }
+
   subscribeAbilityState(listener: AbilityStateListener): () => void {
     return this.controller.subscribeAbilityState(listener)
   }

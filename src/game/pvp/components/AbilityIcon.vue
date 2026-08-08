@@ -94,7 +94,7 @@ const hudShake = useHudShake()
 .ability-icon__name {
   max-width: 100%;
   overflow: hidden;
-  font-size: clamp(0.52rem, 1.4vw, 0.72rem);
+  font-size: clamp(0.52rem, 1.4cqw, 0.72rem);
   font-weight: 800;
   letter-spacing: 0.04em;
   text-overflow: ellipsis;

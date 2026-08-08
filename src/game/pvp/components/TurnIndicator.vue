@@ -27,7 +27,7 @@ const props = defineProps<{
   color: #fff6d0;
   background: rgb(104 65 17 / 78%);
   box-shadow: 0 0 1rem rgb(255 189 28 / 55%);
-  font-size: clamp(0.65rem, 2vw, 0.9rem);
+  font-size: clamp(0.65rem, 2cqw, 0.9rem);
   font-weight: 900;
   letter-spacing: 0.06em;
   text-transform: uppercase;

@@ -53,8 +53,8 @@ const props = defineProps<{
   z-index: 2;
   top: 50%;
   left: 50%;
-  width: clamp(6rem, 28vw, 9.5rem);
-  height: clamp(7rem, 31vw, 11rem);
+  width: clamp(6rem, 28cqw, 9.5rem);
+  height: clamp(7rem, 31cqw, 11rem);
   opacity: 0;
   transform-origin: center;
   filter: drop-shadow(0 0 0.7rem rgb(255 255 255 / 35%));

@@ -174,7 +174,7 @@ defineExpose({ resolvePlayerRewardTarget })
   height: 100%;
   flex-direction: column;
   justify-content: space-between;
-  gap: clamp(0.45rem, 1.6vh, 1.1rem);
+  gap: clamp(0.45rem, 1.6cqh, 1.1rem);
   padding: 0 0.7rem 0.7rem;
   pointer-events: none;
 }
@@ -226,7 +226,7 @@ defineExpose({ resolvePlayerRewardTarget })
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(0.55rem, 1.5vh, 1.2rem);
+  gap: clamp(0.55rem, 1.5cqh, 1.2rem);
   pointer-events: none;
   transform: translate(-50%, -50%);
 }

@@ -48,7 +48,7 @@ const hudShake = useHudShake()
 <style scoped>
 .match-combo-banner {
   display: grid;
-  width: clamp(7rem, 22vw, 13rem);
+  width: clamp(7rem, 22cqw, 13rem);
   aspect-ratio: 1;
   place-items: center;
   pointer-events: none;

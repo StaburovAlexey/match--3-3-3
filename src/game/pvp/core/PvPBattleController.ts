@@ -1,4 +1,10 @@
 import type { MatchResolution } from '../../core/model/Board.ts'
+import type {
+  PvPDevCombatantValues,
+  PvPDevCommandResult,
+  PvPDevRoundPatch,
+  PvPDevRoundSetup,
+} from './PvPBattleDevTypes.ts'
 import {
   addRoundStartEnergy,
   clearRoundResources,
@@ -16,20 +22,25 @@ import {
   type PvPBattleListener,
   type PvPBattleState,
   type QueuedAbility,
+  type RoundResources,
   type RoundSnapshot,
 } from './PvPBattleTypes.ts'
 
 export class PvPBattleController {
   private readonly maxRounds: number
   private readonly maxTurnsPerRound: number
+  private readonly devToolsEnabled: boolean
   private readonly opponentRounds: readonly OpponentRoundPlan[]
   private readonly listeners = new Set<PvPBattleListener>()
   private state: PvPBattleState
   private pendingAbilityId: string | null = null
+  private devOpponentValuesOverride: PvPDevCombatantValues | null = null
+  private devEnergyBaseline: { player: number; opponent: number } | null = null
 
   constructor(config: PvPBattleConfig) {
     this.maxRounds = config.maxRounds ?? 3
     this.maxTurnsPerRound = config.maxTurnsPerRound ?? 7
+    this.devToolsEnabled = config.devToolsEnabled ?? false
     this.opponentRounds = config.opponentRounds
     this.state = {
       phase: 'idle',
@@ -46,6 +57,29 @@ export class PvPBattleController {
 
   get currentState(): PvPBattleState {
     return cloneBattleState(this.state)
+  }
+
+  get devRoundSetup(): PvPDevRoundSetup | null {
+    if (!this.devToolsEnabled) return null
+
+    const opponentPlan = this.opponentRounds[this.state.round - 1] ?? createEmptyOpponentPlan()
+    const opponentValues = this.devOpponentValuesOverride
+      ? { ...this.devOpponentValuesOverride }
+      : {
+          hp: this.state.opponent.hp,
+          energy: this.state.opponent.energy + opponentPlan.resources.abilityEnergy,
+          fireDamage: opponentPlan.resources.fireDamage,
+          iceDamage: opponentPlan.resources.iceDamage,
+          earthDefense: opponentPlan.resources.earthDefense,
+          lightDefense: opponentPlan.resources.lightDefense,
+        }
+
+    return {
+      currentTurn: Math.min(this.maxTurnsPerRound, this.state.turn + 1),
+      maxTurns: this.maxTurnsPerRound,
+      player: valuesFromCombatant(this.state.player),
+      opponent: opponentValues,
+    }
   }
 
   subscribe(listener: PvPBattleListener): () => void {
@@ -159,6 +193,8 @@ export class PvPBattleController {
       return
     }
 
+    this.restoreDevRoundEnergy()
+    this.devOpponentValuesOverride = null
     this.state.round += 1
     this.state.turn = 0
     this.state.lastResolution = null
@@ -174,10 +210,77 @@ export class PvPBattleController {
     this.finishAbility(this.pendingAbilityId, false)
   }
 
+  applyDevRoundPatch(patch: PvPDevRoundPatch): PvPDevCommandResult {
+    const unavailable = this.getDevMutationUnavailableReason()
+    if (unavailable) return unavailable
+
+    if (!this.devEnergyBaseline) {
+      this.devEnergyBaseline = {
+        player: this.state.player.energy,
+        opponent: this.state.opponent.energy,
+      }
+    }
+
+    const player = normalizeDevValues(patch.player, this.state.player.maxHp)
+    const opponent = normalizeDevValues(patch.opponent, this.state.opponent.maxHp)
+    this.state.turn = normalizeInteger(patch.currentTurn, 1, this.maxTurnsPerRound) - 1
+    this.applyDevValuesToCombatant(this.state.player, player)
+    this.applyDevValuesToCombatant(this.state.opponent, opponent)
+    this.devOpponentValuesOverride = { ...opponent }
+    this.state.message = `Dev: ход ${this.state.turn + 1}/${this.maxTurnsPerRound}`
+    this.publish()
+
+    return { accepted: true, message: 'Параметры текущего раунда применены' }
+  }
+
+  forceResolveCurrentRound(): PvPDevCommandResult {
+    const unavailable = this.getDevMutationUnavailableReason()
+    if (unavailable) return unavailable
+
+    this.state.turn = this.maxTurnsPerRound
+    this.state.phase = 'opponent-turn'
+    this.state.message = 'Dev: досрочное завершение раунда'
+    this.publish()
+    this.resolveCurrentRound([])
+    return { accepted: true, message: 'Раунд завершён досрочно' }
+  }
+
   dispose(): void {
     this.listeners.clear()
     this.pendingAbilityId = null
+    this.devOpponentValuesOverride = null
+    this.devEnergyBaseline = null
     this.state.phase = 'finished'
+  }
+
+  private getDevMutationUnavailableReason(): PvPDevCommandResult | null {
+    if (!this.devToolsEnabled) {
+      return { accepted: false, message: 'Dev-команды отключены' }
+    }
+    if (this.state.phase !== 'player-turn') {
+      return { accepted: false, message: 'Команда доступна только во время хода игрока' }
+    }
+    if (this.pendingAbilityId) {
+      return { accepted: false, message: 'Сначала завершите или отмените способность' }
+    }
+    return null
+  }
+
+  private applyDevValuesToCombatant(
+    combatant: CombatantState,
+    values: PvPDevCombatantValues,
+  ): void {
+    combatant.hp = values.hp
+    combatant.energy = values.energy
+    combatant.energyInRound = values.energy
+    combatant.resources = resourcesFromDevValues(values)
+  }
+
+  private restoreDevRoundEnergy(): void {
+    if (!this.devEnergyBaseline) return
+    this.state.player.energy = this.devEnergyBaseline.player
+    this.state.opponent.energy = this.devEnergyBaseline.opponent
+    this.devEnergyBaseline = null
   }
 
   private createCombatant(definition: CombatantDefinition, rating: number): CombatantState {
@@ -233,10 +336,12 @@ export class PvPBattleController {
   private resolveCurrentRound(playerQueuedAbilities: QueuedAbility[]): void {
     this.state.phase = 'resolving'
     const opponentPlan = this.opponentRounds[this.state.round - 1] ?? createEmptyOpponentPlan()
-    const opponentResources = {
-      ...cloneRoundResources(opponentPlan.resources),
-      abilityEnergy: this.state.opponent.energy + opponentPlan.resources.abilityEnergy,
-    }
+    const opponentResources = this.devOpponentValuesOverride
+      ? resourcesFromDevValues(this.devOpponentValuesOverride)
+      : {
+          ...cloneRoundResources(opponentPlan.resources),
+          abilityEnergy: this.state.opponent.energy + opponentPlan.resources.abilityEnergy,
+        }
     const playerSnapshot = this.createSnapshot(this.state.player, playerQueuedAbilities)
     const opponentSnapshot = this.createSnapshot(
       this.state.opponent,
@@ -317,6 +422,45 @@ export class PvPBattleController {
   private publish(): void {
     const snapshot = this.currentState
     this.listeners.forEach((listener) => listener(snapshot))
+  }
+}
+
+const DEV_VALUE_MAX = 9999
+
+function normalizeInteger(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min
+  return Math.min(max, Math.max(min, Math.floor(value)))
+}
+
+function normalizeDevValues(values: PvPDevCombatantValues, maxHp: number): PvPDevCombatantValues {
+  return {
+    hp: normalizeInteger(values.hp, 0, maxHp),
+    energy: normalizeInteger(values.energy, 0, DEV_VALUE_MAX),
+    fireDamage: normalizeInteger(values.fireDamage, 0, DEV_VALUE_MAX),
+    iceDamage: normalizeInteger(values.iceDamage, 0, DEV_VALUE_MAX),
+    earthDefense: normalizeInteger(values.earthDefense, 0, DEV_VALUE_MAX),
+    lightDefense: normalizeInteger(values.lightDefense, 0, DEV_VALUE_MAX),
+  }
+}
+
+function valuesFromCombatant(combatant: CombatantState): PvPDevCombatantValues {
+  return {
+    hp: combatant.hp,
+    energy: combatant.energy,
+    fireDamage: combatant.resources.fireDamage,
+    iceDamage: combatant.resources.iceDamage,
+    earthDefense: combatant.resources.earthDefense,
+    lightDefense: combatant.resources.lightDefense,
+  }
+}
+
+function resourcesFromDevValues(values: PvPDevCombatantValues): RoundResources {
+  return {
+    fireDamage: values.fireDamage,
+    iceDamage: values.iceDamage,
+    earthDefense: values.earthDefense,
+    lightDefense: values.lightDefense,
+    abilityEnergy: values.energy,
   }
 }
 

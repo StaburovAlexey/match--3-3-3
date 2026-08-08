@@ -96,7 +96,7 @@ const accentColor = computed(() => biomePalettes[props.hero.elementType].particl
 
 .dev-hero-card__name {
   overflow: hidden;
-  font-size: clamp(0.72rem, 2vw, 0.92rem);
+  font-size: clamp(0.72rem, 2cqw, 0.92rem);
   font-weight: 900;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -120,7 +120,7 @@ onBeforeUnmount(() => {
   --name-width: 56%;
 }
 
-@media (max-width: 720px) {
+@container game (max-width: 720px) {
   .clear-glow-lab__header {
     top: 42px;
     max-width: calc(100% - 56px);

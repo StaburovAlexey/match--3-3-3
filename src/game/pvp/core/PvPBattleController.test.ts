@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { PvPBattleController } from './PvPBattleController.ts'
+import type { PvPDevRoundPatch } from './PvPBattleDevTypes.ts'
 import { createEmptyRoundResources } from './PvPBattleTypes.ts'
 import type { PvPBattleConfig } from './PvPBattleTypes.ts'
 
-function createConfig(): PvPBattleConfig {
+function createConfig(devToolsEnabled = false): PvPBattleConfig {
   return {
     maxRounds: 3,
     maxTurnsPerRound: 7,
+    devToolsEnabled,
     playerRating: 1200,
     player: {
       id: 'player',
@@ -45,7 +47,129 @@ function createConfig(): PvPBattleConfig {
   }
 }
 
+function createDevPatch(): PvPDevRoundPatch {
+  return {
+    currentTurn: 5,
+    player: {
+      hp: 900,
+      energy: 70,
+      fireDamage: 25,
+      iceDamage: 5,
+      earthDefense: 4,
+      lightDefense: 3,
+    },
+    opponent: {
+      hp: 850,
+      energy: 60,
+      fireDamage: 6,
+      iceDamage: 18,
+      earthDefense: 2,
+      lightDefense: 7,
+    },
+  }
+}
+
 describe('PvPBattleController', () => {
+  it('rejects dev mutations unless dev tools are explicitly enabled', () => {
+    const controller = new PvPBattleController(createConfig())
+    controller.start()
+
+    expect(controller.devRoundSetup).toBeNull()
+    expect(controller.applyDevRoundPatch(createDevPatch())).toMatchObject({ accepted: false })
+    expect(controller.forceResolveCurrentRound()).toMatchObject({ accepted: false })
+    expect(controller.currentState.phase).toBe('player-turn')
+  })
+
+  it('atomically applies normalized dev values to both combatants', () => {
+    const controller = new PvPBattleController(createConfig(true))
+    controller.start()
+    const patch = createDevPatch()
+    patch.currentTurn = 99
+    patch.player.fireDamage = 25.9
+    patch.opponent.iceDamage = -10
+
+    expect(controller.applyDevRoundPatch(patch)).toMatchObject({ accepted: true })
+    expect(controller.devRoundSetup).toEqual({
+      currentTurn: 7,
+      maxTurns: 7,
+      player: { ...patch.player, fireDamage: 25 },
+      opponent: { ...patch.opponent, iceDamage: 0 },
+    })
+    expect(controller.currentState.turn).toBe(6)
+  })
+
+  it('uses dev round values in the normal authoritative round resolution', () => {
+    const controller = new PvPBattleController(createConfig(true))
+    const patch = createDevPatch()
+    controller.start()
+    controller.applyDevRoundPatch(patch)
+
+    expect(controller.forceResolveCurrentRound()).toMatchObject({ accepted: true })
+    const state = controller.currentState
+    expect(state.turn).toBe(7)
+    expect(state.phase).toBe('round-result')
+    expect(state.lastResolution?.playerSnapshot).toMatchObject({
+      currentHp: patch.player.hp,
+      abilityEnergy: patch.player.energy,
+      fireDamage: patch.player.fireDamage,
+      iceDamage: patch.player.iceDamage,
+    })
+    expect(state.lastResolution?.opponentSnapshot).toMatchObject({
+      currentHp: patch.opponent.hp,
+      abilityEnergy: patch.opponent.energy,
+      fireDamage: patch.opponent.fireDamage,
+      iceDamage: patch.opponent.iceDamage,
+    })
+    expect(controller.forceResolveCurrentRound()).toMatchObject({ accepted: false })
+  })
+
+  it('rejects round mutations while a manual ability is pending', () => {
+    const controller = new PvPBattleController(createConfig(true))
+    const patch = createDevPatch()
+    controller.start()
+    controller.applyDevRoundPatch(patch)
+
+    expect(controller.beginAbility('test-ability')).toMatchObject({ accepted: true })
+    expect(controller.applyDevRoundPatch(patch)).toMatchObject({ accepted: false })
+    expect(controller.forceResolveCurrentRound()).toMatchObject({ accepted: false })
+
+    controller.cancelPendingAbility()
+    expect(controller.forceResolveCurrentRound()).toMatchObject({ accepted: true })
+  })
+
+  it('drops round-only stat and energy overrides but preserves resulting hp', () => {
+    const controller = new PvPBattleController(createConfig(true))
+    controller.start()
+    controller.applyDevRoundPatch(createDevPatch())
+    controller.forceResolveCurrentRound()
+    const resolvedHp = {
+      player: controller.currentState.player.hp,
+      opponent: controller.currentState.opponent.hp,
+    }
+
+    controller.continueAfterRound()
+
+    expect(controller.devRoundSetup).toMatchObject({
+      currentTurn: 1,
+      player: {
+        hp: resolvedHp.player,
+        energy: 40,
+        fireDamage: 0,
+        iceDamage: 0,
+        earthDefense: 0,
+        lightDefense: 0,
+      },
+      opponent: {
+        hp: resolvedHp.opponent,
+        energy: 40,
+        fireDamage: 0,
+        iceDamage: 0,
+        earthDefense: 0,
+        lightDefense: 0,
+      },
+    })
+  })
+
   it('keeps combatant element types in battle state', () => {
     const controller = new PvPBattleController(createConfig())
 

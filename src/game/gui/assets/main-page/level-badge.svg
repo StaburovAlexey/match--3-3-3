@@ -1,0 +1,10 @@
+<svg width="29" height="17" viewBox="0 0 29 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M24.4075 0.5L24.5374 0.802734L27.6165 7.9873L27.5452 8.17578L24.5452 16.1758L24.4241 16.5H3.73071L3.60962 16.1758L0.609619 8.17578L0.53833 7.9873L3.61743 0.802734L3.74731 0.5H24.4075Z" fill="#003343" stroke="black"/>
+  <path d="M23.7473 1.5L26.5383 8.0127L23.7307 15.5H4.42407L1.61548 8.0127L4.40747 1.5H23.7473Z" stroke="url(#level-badge-border)"/>
+  <defs>
+    <linearGradient id="level-badge-border" x1="4.07739" y1="1.5" x2="18.5774" y2="15.5" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E6DEB9"/>
+      <stop offset="1" stop-color="#EBAE5B"/>
+    </linearGradient>
+  </defs>
+</svg>

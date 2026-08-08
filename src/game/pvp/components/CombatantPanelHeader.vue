@@ -37,7 +37,7 @@ const hudShake = useHudShake()
   min-width: 0;
   margin: 0;
   overflow: hidden;
-  font-size: clamp(1rem, 2.5vw, 2rem);
+  font-size: clamp(1rem, 2.5cqw, 2rem);
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -50,7 +50,7 @@ const hudShake = useHudShake()
   justify-self: end;
   gap: 0.25rem;
   color: #ffd21f;
-  font-size: clamp(1rem, 3vw, 1.35rem);
+  font-size: clamp(1rem, 3cqw, 1.35rem);
   font-weight: 900;
 }
 

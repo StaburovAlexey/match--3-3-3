@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="60" height="60" viewBox="0 0 60 60">
+  <defs>
+    <filter id="fx0">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0" result="fx0_is_blur"/>
+      <feOffset dx="-2" dy="0" result="fx0_is_off"/>
+      <feComposite in="SourceAlpha" in2="fx0_is_off" operator="out" result="fx0_is_inv"/>
+      <feFlood flood-color="#000000" flood-opacity="0.25"/>
+      <feComposite in2="fx0_is_inv" operator="in" result="fx0_is_shadow"/>
+      <feComposite in="fx0_is_shadow" in2="SourceGraphic" operator="over"/>
+    </filter>
+    <filter id="fx1">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0" result="fx1_is_blur"/>
+      <feOffset dx="-2" dy="0" result="fx1_is_off"/>
+      <feComposite in="SourceAlpha" in2="fx1_is_off" operator="out" result="fx1_is_inv"/>
+      <feFlood flood-color="#838A8F" flood-opacity="1"/>
+      <feComposite in2="fx1_is_inv" operator="in" result="fx1_is_shadow"/>
+      <feComposite in="fx1_is_shadow" in2="SourceGraphic" operator="over"/>
+    </filter>
+    <filter id="fx2">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0" result="fx2_is_blur"/>
+      <feOffset dx="0.7" dy="0.8" result="fx2_is_off"/>
+      <feComposite in="SourceAlpha" in2="fx2_is_off" operator="out" result="fx2_is_inv"/>
+      <feFlood flood-color="#AAB6BC" flood-opacity="1"/>
+      <feComposite in2="fx2_is_inv" operator="in" result="fx2_is_shadow"/>
+      <feComposite in="fx2_is_shadow" in2="SourceGraphic" operator="over"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0" result="fx2_is_blur"/>
+      <feOffset dx="-1.5" dy="0.5" result="fx2_is_off"/>
+      <feComposite in="SourceAlpha" in2="fx2_is_off" operator="out" result="fx2_is_inv"/>
+      <feFlood flood-color="#AAB6BC" flood-opacity="1"/>
+      <feComposite in2="fx2_is_inv" operator="in" result="fx2_is_shadow"/>
+      <feComposite in="fx2_is_shadow" in2="SourceGraphic" operator="over"/>
+      <feDropShadow dx="2" dy="0" stdDeviation="0" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <g>
+    <g transform="translate(11, 6)">
+      <rect width="38" height="48" fill="#838A8F" stroke="#000000" stroke-width="1"/>
+      <g transform="translate(6, 0)" filter="url(#fx0)">
+        <path d="M13 0C5.82 0 0 5.82 0 13L0 21L6 21L6 13C6 9.13 9.13 6 13 6C16.87 6 20 9.13 20 13L20 21L26 21L26 13C26 5.82 20.18 0 13 0Z" fill="#AFB8BF"/>
+      </g>
+      <g transform="translate(0, 19)">
+        <path d="M6.07 0C4.91 0 3.75 0.38 2.98 1.25C1.09 3.37 0 6.24 0 10C0 20.49 8.51 29 19 29C29.49 29 38 20.49 38 10C38 6.24 36.91 3.37 35.02 1.25C34.25 0.38 33.09 0 31.93 0L6.07 0Z" fill="#5A6368"/>
+      </g>
+    </g>
+    <g transform="translate(17, 6)" filter="url(#fx1)">
+      <path d="M13 0C5.82 0 0 5.99 0 13.37L0 18L6 18L6 13.37C6 9.39 9.13 6.17 13 6.17C16.87 6.17 20 9.39 20 13.37L20 18L26 18L26 13.37C26 5.99 20.18 0 13 0Z" fill="#A4ADB5"/>
+    </g>
+    <g transform="translate(11, 25)" filter="url(#fx2)">
+      <path d="M5.92 0C4.72 0 3.51 0.41 2.75 1.34C1.01 3.46 0 6.29 0 10C0 20.49 8.06 29 18 29C27.94 29 36 20.49 36 10C36 6.29 34.99 3.46 33.25 1.34C32.49 0.41 31.28 0 30.08 0L5.92 0Z" fill="#747F87"/>
+    </g>
+    <g transform="translate(25, 32)">
+      <rect width="8" height="13" fill="#000000" stroke="#ABABAB" stroke-width="0.3"/>
+      <path d="M0 4A4 4 0 1 1 8 4A4 4 0 1 1 0 4Z" fill="#D9D9D9"/>
+      <g transform="translate(1, 2)">
+        <path d="M0.92 0.91C0.96 0.39 1.4 0 1.91 0L4.09 0C4.6 0 5.04 0.39 5.08 0.91L5.9 9.91C5.95 10.5 5.49 11 4.9 11L1.1 11C0.51 11 0.05 10.5 0.1 9.91L0.92 0.91Z" fill="#D9D9D9"/>
+      </g>
+    </g>
+  </g>
+</svg>

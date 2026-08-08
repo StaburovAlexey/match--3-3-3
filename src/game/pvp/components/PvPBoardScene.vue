@@ -112,7 +112,11 @@ function cancelAbility(): void {
   if (result) emit('abilityFinished', result)
 }
 
-defineExpose({ confirmAbility, cancelAbility, abilityState })
+function isBoardIdle(): boolean {
+  return runtime.value?.isBoardIdle ?? false
+}
+
+defineExpose({ confirmAbility, cancelAbility, isBoardIdle })
 </script>
 
 <template>

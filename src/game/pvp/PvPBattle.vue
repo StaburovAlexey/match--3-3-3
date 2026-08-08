@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { shallowRef, useTemplateRef } from 'vue'
+import { computed, defineAsyncComponent, shallowRef, useTemplateRef } from 'vue'
 import type { AbilityInteractionState } from '../core/ability/AbilityContract.ts'
 import type { GameRuntimeErrorEvent } from '../runtime/ThreeGameRuntime.ts'
 import type {
@@ -8,6 +8,8 @@ import type {
   RewardHit,
 } from '../core/model/RewardTarget.ts'
 import type { CombatantDefinition, PvPBattleConfig } from './core/PvPBattleTypes.ts'
+import type { PvPDevCommandResult, PvPDevRoundPatch } from './core/PvPBattleDevTypes.ts'
+import type { PvPDevComboMultiplier } from './components/dev/usePvPDevEventSequence.ts'
 import { usePvPBattle } from './composables/usePvPBattle.ts'
 import PvPBattleHud from './components/PvPBattleHud.vue'
 import PvPBoardScene from './components/PvPBoardScene.vue'
@@ -28,9 +30,14 @@ const emit = defineEmits<{
   exit: []
 }>()
 
+const PvPDevTools = import.meta.env.DEV
+  ? defineAsyncComponent(() => import('./components/dev/PvPDevTools.vue'))
+  : null
+
 const battleConfig: PvPBattleConfig = {
   maxRounds: 3,
   maxTurnsPerRound: 7,
+  devToolsEnabled: import.meta.env.DEV,
   player: props.player,
   playerRating: props.playerRating,
   opponent: props.opponent,
@@ -47,10 +54,19 @@ const abilityState = shallowRef<AbilityInteractionState>({
   error: null,
 })
 const roundBattle = shallowRef<RoundClashPresentationState>(createIdleRoundClashPresentation())
-const board = useTemplateRef<{ confirmAbility: () => Promise<void>; cancelAbility: () => void }>(
-  'board',
-)
+const devFeedback = shallowRef<PvPDevCommandResult | null>(null)
+const board = useTemplateRef<{
+  confirmAbility: () => Promise<void>
+  cancelAbility: () => void
+  isBoardIdle: () => boolean
+}>('board')
 const hud = useTemplateRef<{ resolvePlayerRewardTarget: ResolvePlayerRewardTarget }>('hud')
+const devMutationEnabled = computed(
+  () => battle.state.value.phase === 'player-turn' && abilityState.value.phase === 'idle',
+)
+const devCanContinue = computed(
+  () => battle.state.value.phase === 'round-result' && roundBattle.value.phase === 'complete',
+)
 
 function handleAbilitySelect(abilityId: string): void {
   battle.selectAbility(abilityId)
@@ -82,6 +98,52 @@ function handleMatchMultiplierChanged(multiplier: number): void {
 
 function handleHudShake(reason: HudShakeReason): void {
   battle.handleHudShake(reason)
+}
+
+function handleDevCombo(multiplier: PvPDevComboMultiplier): void {
+  battle.handleMatchMultiplierChanged(multiplier)
+  battle.handleHudShake('match')
+  devFeedback.value = { accepted: true, message: `Запущен визуальный каскад ×${multiplier}` }
+}
+
+function handleDevBomb(): void {
+  battle.handleHudShake('bomb')
+  devFeedback.value = {
+    accepted: true,
+    message: `Bomb запущен с силой ×${Math.max(1, battle.matchMultiplier.value)}`,
+  }
+}
+
+function resetDevEffects(): void {
+  battle.handleMatchMultiplierChanged(0)
+  devFeedback.value = { accepted: true, message: 'Множитель эффектов сброшен' }
+}
+
+function canRunDevMutation(): boolean {
+  if (!board.value?.isBoardIdle()) {
+    devFeedback.value = { accepted: false, message: 'Дождитесь остановки поля' }
+    return false
+  }
+  return true
+}
+
+function applyDevRound(patch: PvPDevRoundPatch): void {
+  if (!canRunDevMutation()) return
+  devFeedback.value = battle.applyDevRoundPatch(patch)
+}
+
+function forceDevRound(): void {
+  if (!canRunDevMutation()) return
+  devFeedback.value = battle.forceResolveCurrentRound()
+}
+
+function continueDevRound(): void {
+  if (!devCanContinue.value) {
+    devFeedback.value = { accepted: false, message: 'Сначала дождитесь завершения боя' }
+    return
+  }
+  battle.continueRound()
+  devFeedback.value = { accepted: true, message: 'Следующий раунд запущен' }
 }
 
 function handleRoundBattlePresentationChange(presentation: RoundClashPresentationState): void {
@@ -161,21 +223,38 @@ function exitBattle(): void {
     <p v-if="battle.status.value" class="pvp-battle__status" aria-live="polite">
       {{ battle.status.value }}
     </p>
+    <PvPDevTools
+      v-if="PvPDevTools"
+      :setup="battle.devRoundSetup.value"
+      :phase="battle.state.value.phase"
+      :round="battle.state.value.round"
+      :max-rounds="battle.state.value.maxRounds"
+      :player-max-hp="battle.state.value.player.maxHp"
+      :opponent-max-hp="battle.state.value.opponent.maxHp"
+      :active-multiplier="battle.matchMultiplier.value"
+      :mutation-enabled="devMutationEnabled"
+      :can-continue="devCanContinue"
+      :feedback="devFeedback"
+      @combo="handleDevCombo"
+      @bomb="handleDevBomb"
+      @reset-effects="resetDevEffects"
+      @apply-round="applyDevRound"
+      @force-round="forceDevRound"
+      @continue-round="continueDevRound"
+    />
   </main>
 </template>
 
 <style scoped>
 .pvp-battle {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: min(100vw, 32rem);
-  height: min(100dvh, 57rem);
+  inset: 0;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 48%, rgb(122 66 18 / 38%), transparent 30%),
     linear-gradient(180deg, #0c0710 0%, #241707 50%, #0c0710 100%);
-  transform: translate(-50%, -50%);
 }
 
 .pvp-battle::before {

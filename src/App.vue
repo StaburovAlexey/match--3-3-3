@@ -7,7 +7,7 @@ import type {
 import type { AbilityEffect } from './game/core/ability/AbilityCommand.ts'
 import type { GameRuntimeErrorEvent } from './game/runtime/ThreeGameRuntime.ts'
 import ThreeScene from './game/gui/components/ThreeScene.vue'
-import GameModeSelect from './game/gui/components/GameModeSelect.vue'
+import MainPage from './game/gui/components/MainPage.vue'
 import PvPBattle from './game/pvp/PvPBattle.vue'
 import DevHeroSelect from './game/pvp/components/DevHeroSelect.vue'
 import {
@@ -136,7 +136,7 @@ function handleRuntimeError(event: GameRuntimeErrorEvent): void {
   <CubeClearGlowLab v-else-if="isClearGlowLab" />
   <BombExplosionLab v-else-if="isBombLab" />
   <LightningLab v-else-if="isLightningLab" />
-  <GameModeSelect
+  <MainPage
     v-else-if="mode === 'select'"
     @select="handleModeSelect"
     @dev-hero-select="openDevHeroSelect"

@@ -6,6 +6,11 @@ import type {
 import type { GameTurnResolution } from '../../core/flow/GameController.ts'
 import type { HudShakeReason, RewardHit, RewardPulse } from '../../core/model/RewardTarget.ts'
 import { PvPBattleController } from '../core/PvPBattleController.ts'
+import type {
+  PvPDevCommandResult,
+  PvPDevRoundPatch,
+  PvPDevRoundSetup,
+} from '../core/PvPBattleDevTypes.ts'
 import {
   cloneRoundResources,
   type AbilityStartResult,
@@ -29,6 +34,7 @@ export function usePvPBattle(config: PvPBattleConfig) {
   const hudShakeReason = shallowRef<HudShakeReason>('match')
   const abilityRequest = shallowRef<AbilityActivationRequest | null>(null)
   const status = shallowRef<string | null>(null)
+  const devRoundSetup = shallowRef<PvPDevRoundSetup | null>(controller.devRoundSetup)
   let abilitySequence = 0
   let rewardPulseId = 0
   let pendingRewardHits = 0
@@ -36,6 +42,7 @@ export function usePvPBattle(config: PvPBattleConfig) {
 
   const unsubscribe = controller.subscribe((nextState) => {
     state.value = nextState
+    devRoundSetup.value = controller.devRoundSetup
     if (pendingRewardHits > 0) {
       playerResourceSyncDeferred = true
       return
@@ -131,6 +138,16 @@ export function usePvPBattle(config: PvPBattleConfig) {
     abilityRequest.value = null
   }
 
+  function applyDevRoundPatch(patch: PvPDevRoundPatch): PvPDevCommandResult {
+    return controller.applyDevRoundPatch(patch)
+  }
+
+  function forceResolveCurrentRound(): PvPDevCommandResult {
+    const result = controller.forceResolveCurrentRound()
+    if (result.accepted) matchMultiplier.value = 0
+    return result
+  }
+
   onBeforeUnmount(() => {
     unsubscribe()
     controller.dispose()
@@ -147,6 +164,7 @@ export function usePvPBattle(config: PvPBattleConfig) {
     hudShakeReason: readonly(hudShakeReason),
     abilityRequest: readonly(abilityRequest),
     status: readonly(status),
+    devRoundSetup: readonly(devRoundSetup),
     playerInputEnabled,
     selectAbility,
     handleAbilityFinished,
@@ -157,5 +175,7 @@ export function usePvPBattle(config: PvPBattleConfig) {
     handleRewardHit,
     continueRound,
     cancelAbility,
+    applyDevRoundPatch,
+    forceResolveCurrentRound,
   }
 }

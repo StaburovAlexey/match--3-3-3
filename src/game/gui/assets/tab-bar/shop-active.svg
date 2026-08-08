@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="58.1" height="48.72" viewBox="0 0 58.1 48.72">
+  <g transform="translate(16.94, 22.66) rotate(6.09, 20, 12)">
+    <rect width="40" height="24" fill="#2B99F0"/>
+  </g>
+  <g transform="translate(1.28, 3.4) rotate(-10.19, 20, 9)">
+    <path d="M0 7C0 3.13 3.13 0 7 0L33 0C36.87 0 40 3.13 40 7L40 18L0 18L0 7Z" fill="#D9DADA"/>
+  </g>
+</svg>

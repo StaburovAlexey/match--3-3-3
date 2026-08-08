@@ -71,7 +71,7 @@ const opponentId = shallowRef(props.initialOpponentId)
   width: 100%;
   height: 100%;
   overflow: auto;
-  padding: clamp(0.65rem, 2vw, 1.2rem);
+  padding: clamp(0.65rem, 2cqw, 1.2rem);
   background:
     radial-gradient(circle at 15% 20%, rgb(73 31 119 / 38%), transparent 32%),
     radial-gradient(circle at 85% 80%, rgb(24 92 126 / 32%), transparent 34%), #08050d;
@@ -82,7 +82,7 @@ const opponentId = shallowRef(props.initialOpponentId)
   width: min(100%, 72rem);
   min-height: 100%;
   align-content: center;
-  gap: clamp(0.8rem, 2vh, 1.4rem);
+  gap: clamp(0.8rem, 2cqh, 1.4rem);
   margin: 0 auto;
 }
 
@@ -108,7 +108,7 @@ const opponentId = shallowRef(props.initialOpponentId)
 }
 
 .dev-hero-select__title {
-  font-size: clamp(1.6rem, 5vw, 3rem);
+  font-size: clamp(1.6rem, 5cqw, 3rem);
 }
 
 .dev-hero-select__side {
@@ -117,14 +117,14 @@ const opponentId = shallowRef(props.initialOpponentId)
 }
 
 .dev-hero-select__side-title {
-  font-size: clamp(0.85rem, 2.3vw, 1.1rem);
+  font-size: clamp(0.85rem, 2.3cqw, 1.1rem);
 }
 
 .dev-hero-select__grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(6.5rem, 11.5rem));
   justify-content: space-between;
-  gap: clamp(0.35rem, 1.2vw, 0.7rem);
+  gap: clamp(0.35rem, 1.2cqw, 0.7rem);
 }
 
 .dev-hero-select__back,
@@ -154,7 +154,7 @@ const opponentId = shallowRef(props.initialOpponentId)
   filter: brightness(1.2);
 }
 
-@media (max-width: 48rem) {
+@container game (max-width: 48rem) {
   .dev-hero-select__grid {
     grid-template-columns: repeat(5, minmax(6.2rem, 9rem));
     justify-content: start;
