@@ -2,6 +2,7 @@
 import { shallowRef } from 'vue'
 import type { CombatantDefinition } from '../core/PvPBattleTypes.ts'
 import DevHeroCard from './DevHeroCard.vue'
+import UiButton from '../../gui/components/UiButton.vue'
 
 const props = defineProps<{
   heroes: readonly CombatantDefinition[]
@@ -26,7 +27,9 @@ const opponentId = shallowRef(props.initialOpponentId)
           <p class="dev-hero-select__eyebrow">DEV MODE</p>
           <h1 class="dev-hero-select__title">Выбор героев</h1>
         </div>
-        <button class="dev-hero-select__back" type="button" @click="emit('back')">Назад</button>
+        <UiButton class="dev-hero-select__back" type="button" @click="emit('back')">
+          Назад
+        </UiButton>
       </header>
 
       <section class="dev-hero-select__side" aria-labelledby="dev-player-title">
@@ -55,13 +58,13 @@ const opponentId = shallowRef(props.initialOpponentId)
         </div>
       </section>
 
-      <button
-        class="dev-hero-select__start"
+      <UiButton
+        class="ui-button dev-hero-select__start"
         type="button"
         @click="emit('start', playerId, opponentId)"
       >
         Начать PvP
-      </button>
+      </UiButton>
     </section>
   </main>
 </template>

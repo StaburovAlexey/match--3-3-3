@@ -12,6 +12,7 @@ import { provideHudShake, useHudShake } from '../composables/useHudShake.ts'
 import type { RoundClashPresentationState } from './round-clash/RoundClashTypes.ts'
 import CombatantPanel from './CombatantPanel.vue'
 import MatchComboBanner from './MatchComboBanner.vue'
+import UiButton from '../../gui/components/UiButton.vue'
 
 const props = defineProps<{
   state: PvPBattleState
@@ -101,8 +102,8 @@ defineExpose({ resolvePlayerRewardTarget })
           }}
         </span>
         <div class="pvp-battle-hud__ability-actions">
-          <button
-            class="pvp-battle-hud__action pvp-battle-hud__action--confirm"
+          <UiButton
+            class="ui-button pvp-battle-hud__action pvp-battle-hud__action--confirm"
             type="button"
             :disabled="
               !props.abilityState.canConfirm ||
@@ -112,43 +113,43 @@ defineExpose({ resolvePlayerRewardTarget })
             @click="emit('confirmAbility')"
           >
             {{ props.abilityState.phase === 'executing' ? 'Выполняется…' : 'Применить' }}
-          </button>
-          <button
-            class="pvp-battle-hud__action"
+          </UiButton>
+          <UiButton
+            class="ui-button pvp-battle-hud__action"
             type="button"
             :disabled="props.abilityState.phase === 'executing'"
             @click="emit('cancelAbility')"
           >
             Отмена
-          </button>
+          </UiButton>
         </div>
         <span v-if="props.abilityState.error" class="pvp-battle-hud__ability-error">
           {{ props.abilityState.error }}
         </span>
       </div>
 
-      <button
+      <UiButton
         v-if="props.state.phase === 'round-result' && roundBattleFinished"
         :ref="roundActionShake.setTarget"
-        class="pvp-battle-hud__next pvp-hud-shake-target"
+        class="ui-button pvp-battle-hud__next pvp-hud-shake-target"
         :class="{ 'pvp-hud-shake-target--active': roundActionShake.isShaking.value }"
         :style="roundActionShake.style.value"
         type="button"
         @click="emit('continueRound')"
       >
         Продолжить
-      </button>
-      <button
+      </UiButton>
+      <UiButton
         v-if="props.state.phase === 'finished' && roundBattleFinished"
         :ref="roundActionShake.setTarget"
-        class="pvp-battle-hud__next pvp-hud-shake-target"
+        class="ui-button pvp-battle-hud__next pvp-hud-shake-target"
         :class="{ 'pvp-hud-shake-target--active': roundActionShake.isShaking.value }"
         :style="roundActionShake.style.value"
         type="button"
         @click="emit('exit')"
       >
         Вернуться к выбору
-      </button>
+      </UiButton>
     </div>
 
     <CombatantPanel

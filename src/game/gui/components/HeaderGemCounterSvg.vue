@@ -78,17 +78,34 @@ const displayValue = computed(() => {
     <text
       x="48"
       y="15"
+      class="header-svg-text header-svg-text--shadow"
+      filter="url(#header-svg-text-shadow-gems)"
       fill="white"
-      font-family="Goldman Sans, sans-serif"
       font-size="12"
       font-weight="900"
       text-anchor="middle"
       dominant-baseline="middle"
-      style="text-shadow: 2px 1.5px 2px rgba(0, 0, 0, 1)"
     >
       {{ displayValue }}
     </text>
     <defs>
+      <filter
+        id="header-svg-text-shadow-gems"
+        x="-20%"
+        y="-40%"
+        width="140%"
+        height="220%"
+        color-interpolation-filters="sRGB"
+      >
+        <feFlood flood-color="#000000" flood-opacity="1" result="shadowColor" />
+        <feComposite in="shadowColor" in2="SourceAlpha" operator="in" result="shadow" />
+        <feOffset in="shadow" dx="2" dy="1.5" result="offsetShadow" />
+        <feGaussianBlur in="offsetShadow" stdDeviation="1.2" result="blurShadow" />
+        <feMerge>
+          <feMergeNode in="blurShadow" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
       <filter
         id="filter0_i_1_176"
         x="16"

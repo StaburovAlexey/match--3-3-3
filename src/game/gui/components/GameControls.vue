@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AbilityInteractionState } from '../../core/ability/AbilityContract.ts'
+import UiButton from './UiButton.vue'
 
 const props = defineProps<{
   state: AbilityInteractionState
@@ -14,14 +15,14 @@ const emit = defineEmits<{
 
 <template>
   <div class="game-controls">
-    <button
+    <UiButton
       v-if="props.state.phase === 'idle'"
-      class="game-controls__rebuild"
+      class="ui-button game-controls__rebuild"
       type="button"
       @click="emit('rebuild')"
     >
       Пересобрать поле
-    </button>
+    </UiButton>
 
     <template v-else>
       <div class="game-controls__hint">
@@ -32,26 +33,24 @@ const emit = defineEmits<{
         }}
       </div>
 
-      <button
-        class="game-controls__confirm"
+      <UiButton
+        class="ui-button game-controls__confirm"
         type="button"
         :disabled="
-          props.state.phase === 'executing' ||
-          props.state.previewBusy ||
-          !props.state.canConfirm
+          props.state.phase === 'executing' || props.state.previewBusy || !props.state.canConfirm
         "
         @click="emit('confirmAbility')"
       >
         {{ props.state.phase === 'executing' ? 'Выполняется…' : 'Применить' }}
-      </button>
-      <button
-        class="game-controls__cancel"
+      </UiButton>
+      <UiButton
+        class="ui-button game-controls__cancel"
         type="button"
         :disabled="props.state.phase === 'executing'"
         @click="emit('cancelAbility')"
       >
         Отмена
-      </button>
+      </UiButton>
     </template>
 
     <div v-if="props.state.error" class="game-controls__error">

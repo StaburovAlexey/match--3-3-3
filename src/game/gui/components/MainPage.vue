@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
+import MainPageBattle from './MainPageBattle.vue'
 import MainPageHeader from './MainPageHeader.vue'
 import type { MainPageCurrencyId } from './MainPageHeaderTypes.ts'
 import { mockMainPageAccount } from './MainPageAccountMock.ts'
@@ -7,7 +8,6 @@ import { mainPageTabs } from './MainPageTabs.ts'
 import type { MainPageTabId } from './MainPageTabs.ts'
 import UiTabBarTabSet from './UiTabBarTabSet.vue'
 
-const isDev = import.meta.env.DEV
 const activeTab = shallowRef<MainPageTabId>('battle')
 
 const emit = defineEmits<{
@@ -19,44 +19,22 @@ const emit = defineEmits<{
 const activeTabDefinition = computed(
   () => mainPageTabs.find((tab) => tab.id === activeTab.value) ?? mainPageTabs[2],
 )
+
+const mainPageClasses = computed(() => ({
+  'main-page--battle': activeTab.value === 'battle',
+  'main-page--collection': activeTab.value === 'collection',
+}))
 </script>
 
 <template>
-  <main class="main-page">
+  <main class="main-page" :class="mainPageClasses">
     <MainPageHeader :model="mockMainPageAccount" @currency-add="emit('currencyAdd', $event)" />
 
-    <section v-if="activeTab === 'battle'" class="main-page__card">
-      <p class="main-page__eyebrow">SHADOW RIFT</p>
-      <h1 class="main-page__title">Выберите бой</h1>
-      <p class="main-page__subtitle">Трёхмерное поле уже готово. Выберите режим.</p>
-      <div class="main-page__actions">
-        <button
-          class="main-page__button main-page__button--pvp"
-          type="button"
-          @click="emit('select', 'pvp')"
-        >
-          <span class="main-page__button-title">PvP Battle</span>
-          <span class="main-page__button-caption">1v1 · 3 раунда</span>
-        </button>
-        <button class="main-page__button" type="button" @click="emit('select', 'classic')">
-          <span class="main-page__button-title">Обычная игра</span>
-          <span class="main-page__button-caption">Свободное match-3 поле</span>
-        </button>
-        <button
-          v-if="isDev"
-          class="main-page__button main-page__button--dev"
-          type="button"
-          @click="emit('devHeroSelect')"
-        >
-          <span class="main-page__button-title">DEV · Выбор героев</span>
-          <span class="main-page__button-caption">Настроить игрока и противника</span>
-        </button>
-        <a v-if="isDev" class="main-page__button main-page__button--dev" href="?hud-effects-lab">
-          <span class="main-page__button-title">DEV · HUD Effects Lab</span>
-          <span class="main-page__button-caption">Тряска, bomb и экранные трещины</span>
-        </a>
-      </div>
-    </section>
+    <MainPageBattle
+      v-if="activeTab === 'battle'"
+      @select="emit('select', $event)"
+      @dev-hero-select="emit('devHeroSelect')"
+    />
 
     <section v-else class="main-page__card main-page__card--placeholder" aria-live="polite">
       <p class="main-page__eyebrow">SHADOW RIFT</p>
@@ -74,6 +52,7 @@ const activeTabDefinition = computed(
   --main-page-header-height: clamp(7rem, 15cqh, 8.4rem);
 
   position: relative;
+  isolation: isolate;
   display: grid;
   width: 100%;
   height: 100%;
@@ -83,6 +62,33 @@ const activeTabDefinition = computed(
     calc(7.5rem + env(safe-area-inset-bottom));
   background: linear-gradient(180deg, #581982 0%, #8c2ca9 37%, #8c2ca9 64%, #581982 100%);
   /* background: radial-gradient(circle at 50% 35%, rgb(119 55 158 / 35%), transparent 35%), #0c0710; */
+}
+
+.main-page::before,
+.main-page::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: '';
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 500ms ease-in-out;
+}
+
+.main-page::before {
+  background: linear-gradient(180deg, #352a91 0%, #434caf 33%, #4751bc 63%, #352a91 90%);
+}
+
+.main-page::after {
+  background: linear-gradient(180deg, #192632 0%, #243746 42%, #2d4558 68%, #192632 100%);
+}
+
+.main-page--battle::before {
+  opacity: 1;
+}
+
+.main-page--collection::after {
+  opacity: 1;
 }
 
 .main-page__card {
@@ -136,54 +142,6 @@ const activeTabDefinition = computed(
   margin-bottom: 0;
 }
 
-.main-page__actions {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.main-page__button {
-  display: grid;
-  gap: 0.2rem;
-  padding: 1rem;
-  border: 0.1rem solid #6d9b41;
-  border-radius: 0.8rem;
-  color: #f7ffe8;
-  background: rgb(35 62 17 / 85%);
-  cursor: pointer;
-  text-align: left;
-  text-decoration: none;
-}
-
-.main-page__button--pvp {
-  border-color: #e5b62c;
-  background: linear-gradient(100deg, rgb(95 57 15 / 95%), rgb(68 20 88 / 95%));
-}
-
-.main-page__button--dev {
-  border-color: #4bc6ee;
-  color: #e8faff;
-  background: rgb(12 62 82 / 88%);
-}
-
-.main-page__button:hover {
-  filter: brightness(1.18);
-}
-
-.main-page__button:focus-visible {
-  outline: 2px solid #e5b62c;
-  outline-offset: 3px;
-}
-
-.main-page__button-title {
-  font-size: 1.05rem;
-  font-weight: 900;
-}
-
-.main-page__button-caption {
-  color: rgb(255 255 255 / 72%);
-  font-size: 0.76rem;
-}
-
 .main-page > :deep(.ui-tab-bar) {
   position: absolute;
   z-index: 30;
@@ -206,6 +164,13 @@ const activeTabDefinition = computed(
       100cqh - var(--main-page-header-height) - 7.9rem - env(safe-area-inset-bottom)
     );
     padding-block: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-page::before,
+  .main-page::after {
+    transition: none;
   }
 }
 </style>

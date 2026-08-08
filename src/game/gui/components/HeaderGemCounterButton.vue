@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import HeaderGemCounterSvg from './HeaderGemCounterSvg.vue'
+import UiButton from './UiButton.vue'
 
 defineProps<{
   value: string
@@ -11,14 +12,14 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <button
+  <UiButton
     class="header-currency-counter-button"
     type="button"
     aria-label="Пополнить кристаллы"
     @click="emit('add')"
   >
     <HeaderGemCounterSvg :value="value" />
-  </button>
+  </UiButton>
 </template>
 
 <style scoped>
@@ -39,12 +40,10 @@ const emit = defineEmits<{
   height: 100%;
 }
 
-.header-currency-counter-button:hover {
-  filter: brightness(1.15);
-}
-
-.header-currency-counter-button:active {
-  transform: translateY(1px);
+@media (hover: hover) {
+  .header-currency-counter-button:hover {
+    filter: brightness(1.15);
+  }
 }
 
 .header-currency-counter-button:focus-visible {

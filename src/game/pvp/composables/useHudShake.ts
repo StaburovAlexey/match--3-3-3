@@ -17,6 +17,10 @@ interface HudShakeContext {
   multiplier: Ref<number>
 }
 
+interface ButtonComponentInstance extends ComponentPublicInstance {
+  buttonElement?: HTMLElement | null
+}
+
 const hudShakeContextKey: InjectionKey<HudShakeContext> = Symbol('pvp-hud-shake')
 
 export function provideHudShake(
@@ -33,8 +37,19 @@ export function useHudShake() {
   const isShaking = shallowRef(false)
   const style = shallowRef<Record<string, string>>({})
   const setTarget = (element: Element | ComponentPublicInstance | null): void => {
+    if (typeof HTMLElement === 'undefined') {
+      targetRef.value = null
+      return
+    }
+
+    if (element instanceof HTMLElement) {
+      targetRef.value = element
+      return
+    }
+
+    const component = element as ButtonComponentInstance | null
     targetRef.value =
-      typeof HTMLElement !== 'undefined' && element instanceof HTMLElement ? element : null
+      component?.buttonElement instanceof HTMLElement ? component.buttonElement : null
   }
 
   if (context) {

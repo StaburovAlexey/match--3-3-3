@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import battleActiveIcon from '../assets/tab-bar/battle-active.png'
-import battleInactiveIcon from '../assets/tab-bar/battle-inactive.png'
-import collectionActiveIcon from '../assets/tab-bar/collection-active.png'
-import collectionInactiveIcon from '../assets/tab-bar/collection-inactive.png'
-import lockedActiveIcon from '../assets/tab-bar/locked-active.png'
-import lockedInactiveIcon from '../assets/tab-bar/locked-inactive.png'
-import shopActiveIcon from '../assets/tab-bar/shop-active.png'
-import shopInactiveIcon from '../assets/tab-bar/shop-inactive.png'
-import upgradeActiveIcon from '../assets/tab-bar/upgrade-active.png'
-import upgradeInactiveIcon from '../assets/tab-bar/upgrade-inactive.png'
+import battleActiveIcon from '../assets/tab-bar/battle-active.svg'
+import battleInactiveIcon from '../assets/tab-bar/battle-inactive.svg'
+import collectionActiveIcon from '../assets/tab-bar/collection-active.svg'
+import collectionInactiveIcon from '../assets/tab-bar/collection-inactive.svg'
+import lockedActiveIcon from '../assets/tab-bar/locked-active.svg'
+import lockedInactiveIcon from '../assets/tab-bar/locked-inactive.svg'
+import shopActiveIcon from '../assets/tab-bar/shop-active.svg'
+import shopInactiveIcon from '../assets/tab-bar/shop-inactive.svg'
+import upgradeActiveIcon from '../assets/tab-bar/upgrade-active.svg'
+import upgradeInactiveIcon from '../assets/tab-bar/upgrade-inactive.svg'
 import { mainPageTabs } from './MainPageTabs.ts'
 import type { MainPageTabId } from './MainPageTabs.ts'
+import UiButton from './UiButton.vue'
 
 interface TabIconSet {
   readonly active: string
@@ -36,10 +37,10 @@ const tabIcons: Readonly<Record<MainPageTabId, TabIconSet>> = {
 
 <template>
   <nav class="ui-tab-bar" aria-label="Разделы игры">
-    <button
+    <UiButton
       v-for="tab in mainPageTabs"
       :key="tab.id"
-      class="ui-tab-bar__tab"
+      class="ui-button ui-tab-bar__tab"
       :class="{ 'ui-tab-bar__tab--active': props.activeTab === tab.id }"
       type="button"
       :aria-current="props.activeTab === tab.id ? 'page' : undefined"
@@ -53,7 +54,7 @@ const tabIcons: Readonly<Record<MainPageTabId, TabIconSet>> = {
         aria-hidden="true"
       />
       <span class="ui-tab-bar__label">{{ tab.label }}</span>
-    </button>
+    </UiButton>
   </nav>
 </template>
 
@@ -104,11 +105,6 @@ const tabIcons: Readonly<Record<MainPageTabId, TabIconSet>> = {
 
 .ui-tab-bar__tab:hover {
   filter: brightness(1.12);
-}
-
-.ui-tab-bar__tab:active {
-  transform: translateY(1px);
-  filter: brightness(0.94);
 }
 
 .ui-tab-bar__tab:focus-visible {

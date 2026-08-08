@@ -1,7 +1,12 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="40" height="40" viewBox="0 0 40 40">
-  <g transform="translate(0, 18)">
-    <rect width="40" height="22" fill="#2B99F0"/>
+<svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="#111722" stroke-width="2.2" stroke-linejoin="round">
+    <path d="M11 26V20C11 14.5 15.5 10 21 10H39C44.5 10 49 14.5 49 20V26H11Z" fill="#3F4958" />
+    <path d="M14 21C14 16.8 17.4 13.5 21.5 13.5H38.5C42.6 13.5 46 16.8 46 21V23H14V21Z" fill="#596371" stroke="none" />
+    <path d="M8 24H52V48C52 51.3 49.3 54 46 54H14C10.7 54 8 51.3 8 48V24Z" fill="#624936" />
+    <path d="M12 36H48V50H12V36Z" fill="#4E392C" stroke="none" />
+    <path d="M8 24H52V32H8V24Z" fill="#8C6A3F" />
+    <path d="M17 24V54M43 24V54" stroke="#8C6A3F" stroke-width="4" />
+    <path d="M25 30H35L39 38L30 48L21 38L25 30Z" fill="#55426B" />
+    <path d="M30 33L35 38L30 44L25 38L30 33Z" fill="#7A6290" stroke="none" />
   </g>
-  <path d="M0 7C0 3.13 3.13 0 7 0L33 0C36.87 0 40 3.13 40 7L40 16L0 16L0 7Z" fill="#D9DADA"/>
 </svg>

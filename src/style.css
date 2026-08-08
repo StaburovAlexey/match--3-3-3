@@ -37,6 +37,8 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 * {
@@ -87,6 +89,42 @@ input {
   font: inherit;
 }
 
+.ui-button {
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+  border: 0;
+  margin: 0;
+  transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  transition:
+    transform 110ms ease,
+    filter 110ms ease;
+}
+
+button.ui-button.ui-button--pressed:not(:disabled) {
+  transform: translate3d(0, 1px, 0) rotate(0deg) scale(0.985);
+  filter: brightness(0.94);
+}
+
+.ui-button:focus {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.header-svg-text {
+  font-family: 'Goldman Sans', sans-serif;
+  font-synthesis: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-button {
+    transition: none;
+  }
+}
+
 .pvp-hud-shake-target {
   transform-origin: center;
 }
@@ -99,17 +137,17 @@ input {
 @keyframes pvp-hud-shake-target {
   0%,
   100% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
   }
 
   20% {
     transform: translate3d(calc(var(--pvp-hud-shake-x, 2px) * -1), var(--pvp-hud-shake-y, 2px), 0)
-      rotate(calc(var(--pvp-hud-shake-angle, 0.5deg) * -1));
+      rotate(calc(var(--pvp-hud-shake-angle, 0.5deg) * -1)) scale(1);
   }
 
   40% {
     transform: translate3d(var(--pvp-hud-shake-x, 2px), calc(var(--pvp-hud-shake-y, 2px) * -1), 0)
-      rotate(var(--pvp-hud-shake-angle, 0.5deg));
+      rotate(var(--pvp-hud-shake-angle, 0.5deg)) scale(1);
   }
 
   60% {
@@ -118,7 +156,7 @@ input {
         calc(var(--pvp-hud-shake-y, 2px) * 0.65),
         0
       )
-      rotate(calc(var(--pvp-hud-shake-angle, 0.5deg) * -0.65));
+      rotate(calc(var(--pvp-hud-shake-angle, 0.5deg) * -0.65)) scale(1);
   }
 
   80% {
@@ -127,7 +165,7 @@ input {
         calc(var(--pvp-hud-shake-y, 2px) * -0.35),
         0
       )
-      rotate(calc(var(--pvp-hud-shake-angle, 0.5deg) * 0.35));
+      rotate(calc(var(--pvp-hud-shake-angle, 0.5deg) * 0.35)) scale(1);
   }
 }
 

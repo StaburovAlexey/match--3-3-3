@@ -51,6 +51,12 @@ const formattedCoins = computed(() => numberFormatter.format(props.model.currenc
   align-items: start;
   gap: clamp(0.25rem, 1.7cqw, 0.8rem);
   padding: max(0.9rem, env(safe-area-inset-top)) clamp(0.7rem, 2.4cqw, 1.25rem) 0.9rem;
+  background: linear-gradient(
+    180deg,
+    rgb(5 8 22 / 72%) 0%,
+    rgb(8 11 28 / 38%) 48%,
+    rgb(8 11 28 / 0%) 100%
+  );
   /* overflow: hidden;
   border-bottom: 1px solid rgb(224 126 255 / 42%);
   background:

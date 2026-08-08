@@ -149,13 +149,13 @@ const displayExperience = computed(() => {
     <text
       x="20"
       y="40"
+      class="header-svg-text header-svg-text--shadow"
+      filter="url(#header-svg-text-shadow-profile)"
       text-anchor="middle"
       fill="white"
-      font-family="Goldman Sans, sans-serif"
       font-size="8"
       font-weight="900"
       dominant-baseline="middle"
-      style="text-shadow: 2px 1.5px 2px rgba(0, 0, 0, 1)"
     >
       {{ displayLevel }}
     </text>
@@ -163,12 +163,12 @@ const displayExperience = computed(() => {
     <text
       x="65"
       y="14.5"
+      class="header-svg-text header-svg-text--shadow"
+      filter="url(#header-svg-text-shadow-profile)"
       fill="white"
-      font-family="Goldman Sans, sans-serif"
       font-size="14.5"
       font-weight="800"
       dominant-baseline="middle"
-      style="text-shadow: 2px 1.5px 2px rgba(0, 0, 0, 1)"
     >
       {{ displayRating }}
     </text>
@@ -176,12 +176,12 @@ const displayExperience = computed(() => {
     <text
       x="45"
       y="29"
+      class="header-svg-text header-svg-text--shadow"
+      filter="url(#header-svg-text-shadow-profile)"
       fill="white"
-      font-family="Goldman Sans, sans-serif"
       font-size="8"
       font-weight="900"
       dominant-baseline="middle"
-      style="text-shadow: 2px 1.5px 2px rgba(0, 0, 0, 1)"
     >
       {{ displayName }}
     </text>
@@ -191,8 +191,8 @@ const displayExperience = computed(() => {
     <text
       x="65"
       y="39"
+      class="header-svg-text"
       fill="white"
-      font-family="Goldman Sans, sans-serif"
       font-size="4.5"
       font-weight="700"
       dominant-baseline="middle"
@@ -221,6 +221,23 @@ const displayExperience = computed(() => {
         <feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1" />
         <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
         <feBlend mode="hard-light" in2="shape" result="effect1_innerShadow_1_9753" />
+      </filter>
+      <filter
+        id="header-svg-text-shadow-profile"
+        x="-20%"
+        y="-40%"
+        width="160%"
+        height="220%"
+        color-interpolation-filters="sRGB"
+      >
+        <feFlood flood-color="#000000" flood-opacity="1" result="shadowColor" />
+        <feComposite in="shadowColor" in2="SourceAlpha" operator="in" result="shadow" />
+        <feOffset in="shadow" dx="2" dy="1.5" result="offsetShadow" />
+        <feGaussianBlur in="offsetShadow" stdDeviation="1.2" result="blurShadow" />
+        <feMerge>
+          <feMergeNode in="blurShadow" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
       </filter>
       <filter
         id="filter1_di_1_9753"

@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { biomePalettes } from '../../presentation/three/biome/BiomePalette.ts'
 import type { CombatantDefinition } from '../core/PvPBattleTypes.ts'
+import UiButton from '../../gui/components/UiButton.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -27,8 +28,8 @@ const accentColor = computed(() => biomePalettes[props.hero.elementType].particl
 </script>
 
 <template>
-  <button
-    class="dev-hero-card"
+  <UiButton
+    class="ui-button dev-hero-card"
     :class="{ 'dev-hero-card--selected': props.selected }"
     :style="{ '--dev-hero-accent': accentColor }"
     type="button"
@@ -48,7 +49,7 @@ const accentColor = computed(() => biomePalettes[props.hero.elementType].particl
         :alt="ability.name"
       />
     </span>
-  </button>
+  </UiButton>
 </template>
 
 <style scoped>
@@ -83,7 +84,7 @@ const accentColor = computed(() => biomePalettes[props.hero.elementType].particl
   box-shadow:
     0 0 1rem color-mix(in srgb, var(--dev-hero-accent) 42%, transparent),
     inset 0 0 1rem rgb(0 0 0 / 45%);
-  transform: translateY(-0.12rem);
+  transform: translate3d(0, -0.12rem, 0) rotate(0deg) scale(1);
 }
 
 .dev-hero-card__portrait {

@@ -8,6 +8,7 @@ import type {
 } from '../../core/PvPBattleDevTypes.ts'
 import PvPDevCombatantEditor from './PvPDevCombatantEditor.vue'
 import { usePvPDevEventSequence, type PvPDevComboMultiplier } from './usePvPDevEventSequence.ts'
+import UiButton from '../../../gui/components/UiButton.vue'
 
 const props = defineProps<{
   setup: PvPDevRoundSetup | null
@@ -100,8 +101,8 @@ function forceRound(): void {
 
 <template>
   <aside class="pvp-dev-tools" aria-label="Dev-инструменты PvP">
-    <button
-      class="pvp-dev-tools__toggle"
+    <UiButton
+      class="ui-button pvp-dev-tools__toggle"
       type="button"
       :aria-expanded="isOpen"
       aria-controls="pvp-dev-tools-panel"
@@ -113,7 +114,7 @@ function forceRound(): void {
         <path d="M9 3h6l1 3 3 1v4h2v2h-2v4l-3 1-1 3H9l-1-3-3-1v-4H3v-2h2V7l3-1 1-3Z" />
         <path d="M9 9h6v6H9z" />
       </svg>
-    </button>
+    </UiButton>
 
     <section
       v-show="isOpen"
@@ -128,14 +129,14 @@ function forceRound(): void {
             Раунд {{ props.round }}/{{ props.maxRounds }} · {{ props.phase }}
           </span>
         </div>
-        <button
-          class="pvp-dev-tools__close"
+        <UiButton
+          class="ui-button pvp-dev-tools__close"
           type="button"
           aria-label="Закрыть"
           @click="togglePanel"
         >
           ×
-        </button>
+        </UiButton>
       </header>
 
       <div class="pvp-dev-tools__body">
@@ -145,48 +146,52 @@ function forceRound(): void {
             <span>активен ×{{ Math.max(1, props.activeMultiplier) }}</span>
           </div>
           <div class="pvp-dev-tools__actions pvp-dev-tools__actions--four">
-            <button
+            <UiButton
               v-for="multiplier in comboLevels"
               :key="multiplier"
-              class="pvp-dev-tools__button"
+              class="ui-button pvp-dev-tools__button"
               type="button"
               @click="triggerCombo(multiplier)"
             >
               ×{{ multiplier }}
-            </button>
+            </UiButton>
           </div>
           <div class="pvp-dev-tools__actions">
-            <button
-              class="pvp-dev-tools__button pvp-dev-tools__button--accent"
+            <UiButton
+              class="ui-button pvp-dev-tools__button pvp-dev-tools__button--accent"
               type="button"
               :disabled="sequence.isRunning.value"
               @click="sequence.runComboSequence"
             >
               {{ sequence.isRunning.value ? 'Каскад идёт…' : 'Каскад ×2→×5' }}
-            </button>
-            <button
-              class="pvp-dev-tools__button pvp-dev-tools__button--danger"
+            </UiButton>
+            <UiButton
+              class="ui-button pvp-dev-tools__button pvp-dev-tools__button--danger"
               type="button"
               @click="triggerBomb"
             >
               Bomb
-            </button>
-            <button class="pvp-dev-tools__button" type="button" @click="emit('resetEffects')">
+            </UiButton>
+            <UiButton
+              class="ui-button pvp-dev-tools__button"
+              type="button"
+              @click="emit('resetEffects')"
+            >
               Сброс
-            </button>
+            </UiButton>
           </div>
         </section>
 
         <section v-if="props.setup" class="pvp-dev-tools__section">
           <div class="pvp-dev-tools__section-heading">
             <span>Текущий раунд</span>
-            <button
-              class="pvp-dev-tools__link"
+            <UiButton
+              class="ui-button pvp-dev-tools__link"
               type="button"
               @click="copySetupToDraft(props.setup)"
             >
               Вернуть значения
-            </button>
+            </UiButton>
           </div>
           <label class="pvp-dev-tools__turn">
             <span>Ход</span>
@@ -214,35 +219,35 @@ function forceRound(): void {
             :max-hp="props.opponentMaxHp"
             :disabled="!props.mutationEnabled"
           />
-          <button
-            class="pvp-dev-tools__button pvp-dev-tools__button--wide"
+          <UiButton
+            class="ui-button pvp-dev-tools__button pvp-dev-tools__button--wide"
             type="button"
             :disabled="!props.mutationEnabled"
             @click="applyRound"
           >
             Применить параметры
-          </button>
+          </UiButton>
         </section>
 
         <section class="pvp-dev-tools__section">
           <div class="pvp-dev-tools__section-heading"><span>Управление раундом</span></div>
           <div class="pvp-dev-tools__actions">
-            <button
-              class="pvp-dev-tools__button pvp-dev-tools__button--danger"
+            <UiButton
+              class="ui-button pvp-dev-tools__button pvp-dev-tools__button--danger"
               type="button"
               :disabled="!props.mutationEnabled"
               @click="forceRound"
             >
               Завершить раунд
-            </button>
-            <button
-              class="pvp-dev-tools__button pvp-dev-tools__button--accent"
+            </UiButton>
+            <UiButton
+              class="ui-button pvp-dev-tools__button pvp-dev-tools__button--accent"
               type="button"
               :disabled="!props.canContinue"
               @click="emit('continueRound')"
             >
               Следующий раунд
-            </button>
+            </UiButton>
           </div>
         </section>
 

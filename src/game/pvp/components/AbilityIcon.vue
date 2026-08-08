@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { AbilityState } from '../core/PvPBattleTypes.ts'
 import { useHudShake } from '../composables/useHudShake.ts'
+import UiButton from '../../gui/components/UiButton.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -19,9 +20,9 @@ const hudShake = useHudShake()
 </script>
 
 <template>
-  <button
+  <UiButton
     :ref="hudShake.setTarget"
-    class="ability-icon pvp-hud-shake-target"
+    class="ui-button ability-icon pvp-hud-shake-target"
     :class="[
       `ability-icon--${props.ability.definition.kind}`,
       { 'ability-icon--selected': props.selected },
@@ -38,7 +39,7 @@ const hudShake = useHudShake()
       {{ props.ability.definition.activation.energyCost }}
     </span>
     <span v-if="props.ability.usedThisRound > 0" class="ability-icon__used">✓</span>
-  </button>
+  </UiButton>
 </template>
 
 <style scoped>
@@ -76,7 +77,7 @@ const hudShake = useHudShake()
 .ability-icon:hover:not(:disabled),
 .ability-icon--selected {
   filter: brightness(1.25);
-  transform: translateY(-0.15rem);
+  transform: translate3d(0, -0.15rem, 0) rotate(0deg) scale(1);
 }
 
 .ability-icon:disabled {

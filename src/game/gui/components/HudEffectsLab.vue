@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import UiButton from './UiButton.vue'
 import { computed, nextTick, reactive, shallowRef } from 'vue'
 import type { HudShakeReason } from '../../core/model/RewardTarget.ts'
 import ScreenCrackOverlay from '../../pvp/components/ScreenCrackOverlay.vue'
@@ -188,15 +189,15 @@ async function copySettings(): Promise<void> {
           ABILITY
         </div>
 
-        <button
-          class="hud-effects-lab__target hud-effects-lab__button pvp-hud-shake-target"
+        <UiButton
+          class="ui-button hud-effects-lab__target hud-effects-lab__button pvp-hud-shake-target"
           :class="{ 'pvp-hud-shake-target--active': isShaking }"
           :style="shakeStyles.button"
           type="button"
           @click="trigger('match')"
         >
           Continue
-        </button>
+        </UiButton>
       </div>
 
       <div class="hud-effects-lab__preview-caption">
@@ -215,11 +216,13 @@ async function copySettings(): Promise<void> {
       </header>
 
       <div class="hud-effects-lab__actions">
-        <button type="button" @click="trigger('match')">Каскад X{{ settings.cascadeLevel }}</button>
-        <button type="button" @click="trigger('bomb')">Bomb</button>
-        <button type="button" @click="trigger('cracks')">Только трещины</button>
-        <button type="button" @click="resetSettings">Сбросить</button>
-        <button type="button" @click="copySettings">Скопировать JSON</button>
+        <UiButton type="button" @click="trigger('match')">
+          Каскад X{{ settings.cascadeLevel }}
+        </UiButton>
+        <UiButton type="button" @click="trigger('bomb')">Bomb</UiButton>
+        <UiButton type="button" @click="trigger('cracks')">Только трещины</UiButton>
+        <UiButton type="button" @click="resetSettings">Сбросить</UiButton>
+        <UiButton type="button" @click="copySettings">Скопировать JSON</UiButton>
       </div>
 
       <section class="hud-effects-lab__group">

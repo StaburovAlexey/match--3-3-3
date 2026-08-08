@@ -8,6 +8,7 @@ import type { AbilityEffect } from './game/core/ability/AbilityCommand.ts'
 import type { GameRuntimeErrorEvent } from './game/runtime/ThreeGameRuntime.ts'
 import ThreeScene from './game/gui/components/ThreeScene.vue'
 import MainPage from './game/gui/components/MainPage.vue'
+import UiButton from './game/gui/components/UiButton.vue'
 import PvPBattle from './game/pvp/PvPBattle.vue'
 import DevHeroSelect from './game/pvp/components/DevHeroSelect.vue'
 import {
@@ -165,17 +166,17 @@ function handleRuntimeError(event: GameRuntimeErrorEvent): void {
       @runtime-error="handleRuntimeError"
     />
     <aside class="character-abilities" aria-label="Способности персонажа">
-      <button
+      <UiButton
         v-for="ability in abilities"
         :key="ability.id"
-        class="character-abilities__button"
+        class="ui-button character-abilities__button"
         type="button"
         :disabled="abilityRequest !== null || ability.charges <= 0"
         @click="activateAbility(ability)"
       >
         <span>{{ ability.label }}</span>
         <span class="character-abilities__charges">×{{ ability.charges }}</span>
-      </button>
+      </UiButton>
       <div v-if="abilityStatus" class="character-abilities__status">
         {{ abilityStatus }}
       </div>
