@@ -3,6 +3,7 @@ import { computed, shallowRef } from 'vue'
 import MainPageBattle from './MainPageBattle.vue'
 import MainPageHeader from './MainPageHeader.vue'
 import type { MainPageCurrencyId } from './MainPageHeaderTypes.ts'
+import MainPageLayout from './MainPageLayout.vue'
 import { mockMainPageAccount } from './MainPageAccountMock.ts'
 import { mainPageTabs } from './MainPageTabs.ts'
 import type { MainPageTabId } from './MainPageTabs.ts'
@@ -27,8 +28,10 @@ const mainPageClasses = computed(() => ({
 </script>
 
 <template>
-  <main class="main-page" :class="mainPageClasses">
-    <MainPageHeader :model="mockMainPageAccount" @currency-add="emit('currencyAdd', $event)" />
+  <MainPageLayout class="main-page" :class="mainPageClasses">
+    <template #header>
+      <MainPageHeader :model="mockMainPageAccount" @currency-add="emit('currencyAdd', $event)" />
+    </template>
 
     <MainPageBattle
       v-if="activeTab === 'battle'"
@@ -43,23 +46,19 @@ const mainPageClasses = computed(() => ({
       <p class="main-page__subtitle">{{ activeTabDefinition.placeholder }}</p>
     </section>
 
-    <UiTabBarTabSet :active-tab="activeTab" @select="activeTab = $event" />
-  </main>
+    <template #footer>
+      <UiTabBarTabSet :active-tab="activeTab" @select="activeTab = $event" />
+    </template>
+  </MainPageLayout>
 </template>
 
 <style scoped>
 .main-page {
-  --main-page-header-height: clamp(7rem, 15cqh, 8.4rem);
+  --main-page-tab-bar-height: clamp(4rem, 16.5cqw, 4.5rem);
+  --main-page-tab-bar-overhang: clamp(0.9375rem, 4.1cqw, 1.125rem);
+  --main-page-content-gap: clamp(0.5rem, 2cqw, 0.75rem);
+  --main-page-inline-padding: clamp(0.75rem, 3.125cqw, 1rem);
 
-  position: relative;
-  isolation: isolate;
-  display: grid;
-  width: 100%;
-  height: 100%;
-  place-items: center;
-  overflow: hidden;
-  padding: calc(var(--main-page-header-height) + 0.8rem) 1rem
-    calc(7.5rem + env(safe-area-inset-bottom));
   background: linear-gradient(180deg, #581982 0%, #8c2ca9 37%, #8c2ca9 64%, #581982 100%);
   /* background: radial-gradient(circle at 50% 35%, rgb(119 55 158 / 35%), transparent 35%), #0c0710; */
 }
@@ -67,7 +66,7 @@ const mainPageClasses = computed(() => ({
 .main-page::before,
 .main-page::after {
   position: absolute;
-  z-index: -1;
+  z-index: 0;
   inset: 0;
   content: '';
   opacity: 0;
@@ -93,9 +92,8 @@ const mainPageClasses = computed(() => ({
 
 .main-page__card {
   width: min(100%, 34rem);
-  max-height: calc(100cqh - var(--main-page-header-height) - 9.3rem - env(safe-area-inset-bottom));
+  min-height: 0;
   padding: clamp(1.5rem, 5cqw, 3rem);
-  overflow: auto;
   border: 0.12rem solid #a752d8;
   border-radius: 1.4rem;
   background: rgb(22 11 30 / 92%);
@@ -142,27 +140,12 @@ const mainPageClasses = computed(() => ({
   margin-bottom: 0;
 }
 
-.main-page > :deep(.ui-tab-bar) {
-  position: absolute;
-  z-index: 30;
-  /* bottom: max(0.75rem, env(safe-area-inset-bottom)); */
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
 @container game (max-height: 660px) {
   .main-page {
-    --main-page-header-height: 6.4rem;
-
-    align-items: start;
-    padding-top: calc(var(--main-page-header-height) + 0.55rem);
+    --main-page-content-gap: 0.45rem;
   }
 
   .main-page__card {
-    max-height: calc(
-      100cqh - var(--main-page-header-height) - 7.9rem - env(safe-area-inset-bottom)
-    );
     padding-block: 1rem;
   }
 }

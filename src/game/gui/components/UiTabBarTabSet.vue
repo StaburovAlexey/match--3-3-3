@@ -60,11 +60,16 @@ const tabIcons: Readonly<Record<MainPageTabId, TabIconSet>> = {
 
 <style scoped>
 .ui-tab-bar {
+  --ui-tab-bar-button-size: min(var(--main-page-tab-bar-height, 4.5rem), 17cqw);
+
   border-radius: 8px;
   display: flex;
   width: 100%;
-  height: clamp(64px, 17.68cqw, 76px);
-  gap: 3px;
+  /* height: var(--main-page-tab-bar-height, 4.5rem); */
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  margin-inline: auto;
   filter: drop-shadow(0 12px 18px rgb(0 0 0 / 48%));
   background: #222835;
   -webkit-box-shadow: 0px 0px 32px 15px rgba(0, 0, 0, 0.66);
@@ -74,9 +79,11 @@ const tabIcons: Readonly<Record<MainPageTabId, TabIconSet>> = {
 .ui-tab-bar__tab {
   position: relative;
   display: block;
+  width: var(--ui-tab-bar-button-size);
   min-width: 0;
-  height: 100%;
-  flex: 1;
+  height: var(--ui-tab-bar-button-size);
+  flex: 0 0 var(--ui-tab-bar-button-size);
+  aspect-ratio: 1 / 1;
   padding: 0;
   overflow: visible;
   border: 0;
@@ -87,7 +94,6 @@ const tabIcons: Readonly<Record<MainPageTabId, TabIconSet>> = {
   outline: none;
   -webkit-tap-highlight-color: transparent;
   transition:
-    flex-basis 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
     filter 160ms ease,
     transform 160ms ease;
 }
@@ -99,7 +105,10 @@ const tabIcons: Readonly<Record<MainPageTabId, TabIconSet>> = {
 }
 .ui-tab-bar__tab--active {
   z-index: 1;
-  flex-basis: 114px;
+  width: auto;
+  height: 100%;
+  flex: 1 1 auto;
+  aspect-ratio: auto;
   background: linear-gradient(180deg, #303342 0%, #374056 24.5%, #454b5e 49%, #374056 100%);
 }
 
@@ -119,9 +128,8 @@ const tabIcons: Readonly<Record<MainPageTabId, TabIconSet>> = {
   top: 5px;
   left: 50%;
   display: block;
-  width: 60px;
-  height: 60px;
-  max-width: 92%;
+  width: min(60px, 92%);
+  height: min(60px, 92%);
   transform: translateX(-50%);
   object-fit: contain;
   pointer-events: none;
@@ -137,7 +145,7 @@ const tabIcons: Readonly<Record<MainPageTabId, TabIconSet>> = {
 }
 
 .ui-tab-bar__tab--active .ui-tab-bar__icon {
-  top: -20px;
+  top: calc(0px - var(--main-page-tab-bar-overhang, 1.25rem));
   width: 72px;
   height: 72px;
 }
@@ -165,13 +173,7 @@ const tabIcons: Readonly<Record<MainPageTabId, TabIconSet>> = {
     opacity 160ms ease 90ms,
     transform 220ms ease 60ms;
 }
-
 @container game (max-width: 359px) {
-  .ui-tab-bar {
-    width: calc(100% - 8px);
-    gap: 2px;
-  }
-
   .ui-tab-bar__label {
     right: 3px;
     left: 3px;

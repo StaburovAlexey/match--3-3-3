@@ -58,14 +58,11 @@ const emit = defineEmits<{
 
 <style scoped>
 .main-page-battle {
-  width: min(100%, 34rem);
-  max-height: calc(100cqh - var(--main-page-header-height) - 9.3rem - env(safe-area-inset-bottom));
-  padding: clamp(1.5rem, 5cqw, 3rem);
-  overflow: auto;
-  border: 0.12rem solid #7885ed;
-  border-radius: 1.4rem;
-  background: linear-gradient(180deg, #352a91 0%, #434caf 33%, #4751bc 63%, #352a91 90%);
-  box-shadow: 0 0 2rem rgb(75 87 203 / 42%);
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  align-self: stretch;
+  justify-self: stretch;
   text-align: center;
 }
 
@@ -135,14 +132,5 @@ const emit = defineEmits<{
 .main-page-battle__button-caption {
   color: rgb(255 255 255 / 72%);
   font-size: 0.76rem;
-}
-
-@container game (max-height: 660px) {
-  .main-page-battle {
-    max-height: calc(
-      100cqh - var(--main-page-header-height) - 7.9rem - env(safe-area-inset-bottom)
-    );
-    padding-block: 1rem;
-  }
 }
 </style>

@@ -40,14 +40,10 @@ const formattedCoins = computed(() => numberFormatter.format(props.model.currenc
 
 <style scoped>
 .main-page-header {
-  position: absolute;
-  z-index: 25;
-  top: 0;
-  left: 0;
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   width: 100%;
-  height: var(--main-page-header-height, 8.4rem);
   align-items: start;
   gap: clamp(0.25rem, 1.7cqw, 0.8rem);
   padding: max(0.9rem, env(safe-area-inset-top)) clamp(0.7rem, 2.4cqw, 1.25rem) 0.9rem;
